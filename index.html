@@ -396,16 +396,24 @@
   <main class="container">
    <header class="header">
     <h1>Sistema de Asistencia Escolar - Firebase</h1>
-    <p>Año Académico 2025</p>
+    <p>Año Académico 2024-2025</p>
    </header><!-- Estado de Firebase -->
-   <div id="firebase-status" class="firebase-status connected">
-    ✅ Conectado a Firebase - Base de Datos San Ignacio
+   <div id="firebase-status" class="firebase-status">
+    🔄 Inicializando Firebase...
+   </div><!-- Panel de Diagnóstico Firebase (solo para desarrollo) -->
+   <div id="firebase-debug" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; color: white;">
+    <div>
+     <strong>🔧 Diagnóstico Firebase:</strong>
+    </div>
+    <div id="debug-info">
+     Cargando...
+    </div><button onclick="testFirebaseManually()" style="margin-top: 5px; padding: 5px 10px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer;"> 🧪 Probar Conexión Manual </button>
    </div><!-- Aplicación Principal -->
    <section id="main-app" class="main-app" style="display: block;">
     <div class="user-info">
-     <h3 id="user-welcome">Bienvenido, Prof. Roberto Carlos Rivas</h3>
-     <p id="user-role">Rol: Director</p>
-     <p id="user-school">Institución: Colegio San Ignacio de loyola</p>
+     <h3 id="user-welcome">Bienvenido, Prof. María García</h3>
+     <p id="user-role">Rol: Docente</p>
+     <p id="user-school">Institución: Colegio San Ignacio</p>
     </div>
     <nav class="nav-tabs">
      <div class="nav-tab active" data-tab="attendance">
@@ -513,33 +521,61 @@
 
             async createIndividualAttendance(attendanceData) {
                 try {
+                    console.log('🔄 Intentando guardar en Firebase:', attendanceData);
+                    
+                    if (!this.db || !this.modules) {
+                        throw new Error('Firebase no está inicializado correctamente');
+                    }
+
+                    const docData = {
+                        ...attendanceData,
+                        timestamp: this.modules.serverTimestamp(),
+                        created_at: new Date().toISOString()
+                    };
+
+                    console.log('📝 Datos a guardar:', docData);
+
                     const docRef = await this.modules.addDoc(
                         this.modules.collection(this.db, 'attendance_individual'), 
-                        {
-                            ...attendanceData,
-                            timestamp: this.modules.serverTimestamp()
-                        }
+                        docData
                     );
+                    
+                    console.log('✅ Documento guardado con ID:', docRef.id);
                     return { success: true, id: docRef.id };
                 } catch (error) {
-                    console.error('Error creating individual attendance:', error);
-                    return { success: false, error: error.message };
+                    console.error('❌ Error creating individual attendance:', error);
+                    console.error('Error details:', error.code, error.message);
+                    return { success: false, error: `${error.code || 'UNKNOWN'}: ${error.message}` };
                 }
             }
 
             async createClassroomAttendance(classroomData) {
                 try {
+                    console.log('🔄 Intentando guardar aula en Firebase:', classroomData);
+                    
+                    if (!this.db || !this.modules) {
+                        throw new Error('Firebase no está inicializado correctamente');
+                    }
+
+                    const docData = {
+                        ...classroomData,
+                        timestamp: this.modules.serverTimestamp(),
+                        created_at: new Date().toISOString()
+                    };
+
+                    console.log('📝 Datos de aula a guardar:', docData);
+
                     const docRef = await this.modules.addDoc(
                         this.modules.collection(this.db, 'attendance_classroom'), 
-                        {
-                            ...classroomData,
-                            timestamp: this.modules.serverTimestamp()
-                        }
+                        docData
                     );
+                    
+                    console.log('✅ Aula guardada con ID:', docRef.id);
                     return { success: true, id: docRef.id };
                 } catch (error) {
-                    console.error('Error creating classroom attendance:', error);
-                    return { success: false, error: error.message };
+                    console.error('❌ Error creating classroom attendance:', error);
+                    console.error('Error details:', error.code, error.message);
+                    return { success: false, error: `${error.code || 'UNKNOWN'}: ${error.message}` };
                 }
             }
 
@@ -648,9 +684,12 @@
             initializeApp();
         });
 
-        function initializeApp() {
+        async function initializeApp() {
             try {
-                // Configurar usuario por defecto
+                // Esperar a que Firebase esté disponible
+                await waitForFirebase();
+                
+                // Configurar usuario por defecto (en producción esto vendría de autenticación)
                 currentUser = {
                     uid: 'demo-user-123',
                     name: 'Prof. María García',
@@ -660,17 +699,64 @@
                     school_name: 'Colegio San Ignacio'
                 };
 
-                // Inicializar servicios con datos simulados
+                // Inicializar servicios
                 attendanceService = new FirebaseAttendanceService();
                 authService = new FirebaseAuthService();
+
+                // Probar conexión a Firebase
+                await testFirebaseConnection();
 
                 setupEventListeners();
                 setTodayDate();
                 loadTodayData();
 
+                updateFirebaseStatus('connected', '✅ Conectado a Firebase - Base de Datos San Ignacio');
+
             } catch (error) {
                 console.error('Error initializing app:', error);
                 updateFirebaseStatus('error', '❌ Error inicializando aplicación: ' + error.message);
+            }
+        }
+
+        function waitForFirebase() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkFirebase = () => {
+                    attempts++;
+                    if (window.firebaseDb && window.firebaseModules) {
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Firebase no se cargó correctamente'));
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                
+                checkFirebase();
+            });
+        }
+
+        async function testFirebaseConnection() {
+            try {
+                // Intentar crear una colección de prueba
+                const testDoc = {
+                    test: true,
+                    timestamp: new Date().toISOString(),
+                    school_id: currentUser.school_id
+                };
+                
+                const docRef = await window.firebaseModules.addDoc(
+                    window.firebaseModules.collection(window.firebaseDb, 'connection_test'), 
+                    testDoc
+                );
+                
+                console.log('✅ Conexión a Firebase exitosa. Test doc ID:', docRef.id);
+                return true;
+            } catch (error) {
+                console.error('❌ Error de conexión a Firebase:', error);
+                throw error;
             }
         }
 
@@ -1234,6 +1320,71 @@
                 }, 5000);
             }
         }
+
+        // Función para probar Firebase manualmente
+        async function testFirebaseManually() {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.innerHTML = '🔄 Probando conexión...';
+
+            try {
+                // Verificar que Firebase esté disponible
+                if (!window.firebaseDb) {
+                    throw new Error('window.firebaseDb no está disponible');
+                }
+                if (!window.firebaseModules) {
+                    throw new Error('window.firebaseModules no está disponible');
+                }
+
+                // Intentar crear un documento de prueba
+                const testData = {
+                    test: true,
+                    timestamp: new Date().toISOString(),
+                    school_id: 'test-school',
+                    message: 'Prueba manual de conexión'
+                };
+
+                console.log('🧪 Creando documento de prueba:', testData);
+
+                const docRef = await window.firebaseModules.addDoc(
+                    window.firebaseModules.collection(window.firebaseDb, 'manual_test'), 
+                    testData
+                );
+
+                debugInfo.innerHTML = `
+                    ✅ <strong>Conexión exitosa!</strong><br>
+                    📄 Documento creado: ${docRef.id}<br>
+                    🏗️ Proyecto: base-de-datos-san-ignacio<br>
+                    🔗 Firebase SDK: Cargado correctamente
+                `;
+
+                updateFirebaseStatus('connected', '✅ Firebase funcionando correctamente');
+
+            } catch (error) {
+                console.error('❌ Error en prueba manual:', error);
+                debugInfo.innerHTML = `
+                    ❌ <strong>Error de conexión:</strong><br>
+                    🚨 ${error.message}<br>
+                    🔍 Código: ${error.code || 'N/A'}<br>
+                    📊 Firebase DB: ${window.firebaseDb ? 'Disponible' : 'No disponible'}<br>
+                    🛠️ Módulos: ${window.firebaseModules ? 'Disponible' : 'No disponible'}
+                `;
+
+                updateFirebaseStatus('error', '❌ Error de conexión a Firebase');
+            }
+        }
+
+        // Actualizar información de diagnóstico al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const debugInfo = document.getElementById('debug-info');
+                debugInfo.innerHTML = `
+                    📊 Firebase DB: ${window.firebaseDb ? '✅ Disponible' : '❌ No disponible'}<br>
+                    🛠️ Módulos: ${window.firebaseModules ? '✅ Disponible' : '❌ No disponible'}<br>
+                    🏗️ Proyecto: base-de-datos-san-ignacio<br>
+                    👤 Usuario: ${currentUser ? currentUser.name : 'No configurado'}
+                `;
+            }, 1000);
+        });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995be5e90383a4d4',t:'MTc2MTY2OTg2OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995bfa7762dbe855',t:'MTc2MTY3MDcxMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
