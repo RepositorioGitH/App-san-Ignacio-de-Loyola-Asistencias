@@ -6,7 +6,7 @@
   <title>Sistema de Asistencia Escolar - Firebase</title><!-- Firebase SDK -->
   <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, doc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Configuración Firebase - San Ignacio
@@ -30,6 +30,7 @@
         window.firebaseDb = db;
         window.firebaseModules = {
             signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
             signOut,
             onAuthStateChanged,
             collection,
@@ -357,6 +358,131 @@
             background: rgba(245, 101, 101, 0.2);
         }
 
+        /* Estilos de Autenticación */
+        .auth-screen {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 25px;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .auth-tab {
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .auth-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .auth-form-container {
+            display: none;
+        }
+
+        .auth-form-container.active {
+            display: block;
+        }
+
+        .auth-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .auth-form h3 {
+            text-align: center;
+            color: #2d3748;
+            margin: 0 0 20px 0;
+            font-size: 24px;
+        }
+
+        .demo-accounts {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 10px;
+            border: 2px dashed rgba(102, 126, 234, 0.2);
+        }
+
+        .demo-accounts h4 {
+            margin: 0 0 15px 0;
+            color: #4a5568;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .demo-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .logout-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logout-btn {
+            padding: 8px 15px;
+            background: rgba(245, 101, 101, 0.8);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(245, 101, 101, 1);
+        }
+
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .role-admin {
+            background: #ffd700;
+            color: #744210;
+        }
+
+        .role-user {
+            background: #bee3f8;
+            color: #2a4365;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 5px;
@@ -408,11 +534,69 @@
     <div id="debug-info">
      Cargando...
     </div><button onclick="testFirebaseManually()" style="margin-top: 5px; padding: 5px 10px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer;"> 🧪 Probar Conexión Manual </button>
-   </div><!-- Aplicación Principal -->
-   <section id="main-app" class="main-app" style="display: block;">
+   </div><!-- Pantalla de Autenticación -->
+   <section id="auth-screen" class="auth-screen" style="display: none;">
+    <div class="auth-container">
+     <div class="auth-tabs">
+      <div class="auth-tab active" data-auth-tab="login">
+       🔐 Iniciar Sesión
+      </div>
+      <div class="auth-tab" data-auth-tab="register">
+       📝 Registrarse
+      </div>
+     </div><!-- Login Form -->
+     <div id="login-form-container" class="auth-form-container active">
+      <h3>Iniciar Sesión</h3>
+      <div class="error-message" id="login-error"></div>
+      <div class="loading" id="login-loading">
+       <div class="spinner"></div> Iniciando sesión...
+      </div>
+      <form id="login-form" class="auth-form">
+       <div class="form-group"><label for="login-email">📧 Correo Electrónico:</label> <input type="email" id="login-email" name="email" required placeholder="usuario@sanignacio.edu">
+       </div>
+       <div class="form-group"><label for="login-password">🔒 Contraseña:</label> <input type="password" id="login-password" name="password" required placeholder="Tu contraseña">
+       </div><button type="submit" class="btn btn-primary">🚀 Iniciar Sesión</button>
+      </form>
+      <div class="demo-accounts">
+       <h4>👥 Cuentas de Demostración:</h4>
+       <div class="demo-buttons"><button class="btn btn-secondary" onclick="loginDemo('admin')"> 👑 Admin Demo </button> <button class="btn btn-secondary" onclick="loginDemo('user')"> 👤 Usuario Demo </button>
+       </div>
+      </div>
+     </div><!-- Register Form -->
+     <div id="register-form-container" class="auth-form-container">
+      <h3>Crear Cuenta Nueva</h3>
+      <div class="error-message" id="register-error"></div>
+      <div class="success-message" id="register-success"></div>
+      <div class="loading" id="register-loading">
+       <div class="spinner"></div> Creando cuenta...
+      </div>
+      <form id="register-form" class="auth-form">
+       <div class="form-group"><label for="register-name">👤 Nombre Completo:</label> <input type="text" id="register-name" name="name" required placeholder="Ej: María García López">
+       </div>
+       <div class="form-group"><label for="register-email">📧 Correo Electrónico:</label> <input type="email" id="register-email" name="email" required placeholder="usuario@sanignacio.edu">
+       </div>
+       <div class="form-group"><label for="register-password">🔒 Contraseña:</label> <input type="password" id="register-password" name="password" required placeholder="Mínimo 6 caracteres">
+       </div>
+       <div class="form-group"><label for="register-role">🎭 Rol de Usuario:</label> <select id="register-role" name="role" required> <option value="">Seleccionar rol</option> <option value="user">👤 Usuario (Docente)</option> <option value="admin">👑 Administrador (Director)</option> </select>
+       </div>
+       <div class="form-group"><label for="register-department">🏫 Departamento/Área:</label> <select id="register-department" name="department" required> <option value="">Seleccionar departamento</option> <option value="primaria">📚 Educación Primaria</option> <option value="secundaria">🎓 Educación Secundaria</option> <option value="matematicas">🔢 Matemáticas</option> <option value="ciencias">🔬 Ciencias Naturales</option> <option value="lenguaje">📖 Lenguaje y Literatura</option> <option value="sociales">🌍 Ciencias Sociales</option> <option value="educacion_fisica">⚽ Educación Física</option> <option value="artes">🎨 Artes</option> <option value="administracion">🏢 Administración</option> <option value="direccion">👑 Dirección</option> </select>
+       </div><button type="submit" class="btn btn-success">✨ Crear Cuenta</button>
+      </form>
+     </div>
+    </div>
+   </section><!-- Aplicación Principal -->
+   <section id="main-app" class="main-app" style="display: none;">
+    <div class="logout-section">
+     <div style="color: white;">
+      <div id="user-welcome" style="font-weight: 600; margin-bottom: 2px;">
+       Bienvenido, Usuario
+      </div>
+      <div style="font-size: 12px; opacity: 0.8;"><span id="user-email">email@sanignacio.edu</span> • <span class="role-badge" id="user-role-badge">Usuario</span>
+      </div>
+     </div><button class="logout-btn" onclick="handleLogout()">🚪 Cerrar Sesión</button>
+    </div>
     <div class="user-info">
-     <h3 id="user-welcome">Bienvenido, Prof. María García</h3>
-     <p id="user-role">Rol: Docente</p>
+     <h3 id="user-department">Departamento: No asignado</h3>
      <p id="user-school">Institución: Colegio San Ignacio</p>
     </div>
     <nav class="nav-tabs">
@@ -513,6 +697,63 @@
         let classroomRecords = [];
 
         // Servicios Firebase
+        class FirebaseUserService {
+            constructor() {
+                this.db = window.firebaseDb;
+                this.modules = window.firebaseModules;
+            }
+
+            async createUserProfile(uid, userData) {
+                try {
+                    console.log('🔄 Creando perfil de usuario:', userData);
+                    
+                    const userProfile = {
+                        uid: uid,
+                        name: userData.name,
+                        email: userData.email,
+                        role: userData.role,
+                        department: userData.department,
+                        school_id: 'colegio-san-ignacio-123',
+                        school_name: 'Colegio San Ignacio',
+                        created_at: new Date().toISOString(),
+                        timestamp: this.modules.serverTimestamp()
+                    };
+
+                    await this.modules.addDoc(
+                        this.modules.collection(this.db, 'users'), 
+                        userProfile
+                    );
+                    
+                    console.log('✅ Perfil de usuario creado exitosamente');
+                    return { success: true, profile: userProfile };
+                } catch (error) {
+                    console.error('❌ Error creating user profile:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+
+            async getUserProfile(uid) {
+                try {
+                    const q = this.modules.query(
+                        this.modules.collection(this.db, 'users'),
+                        this.modules.where('uid', '==', uid)
+                    );
+                    
+                    const querySnapshot = await this.modules.getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        const userDoc = querySnapshot.docs[0];
+                        return { success: true, profile: { id: userDoc.id, ...userDoc.data() } };
+                    } else {
+                        return { success: false, error: 'Perfil de usuario no encontrado' };
+                    }
+                } catch (error) {
+                    console.error('❌ Error getting user profile:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+        }
+
         class FirebaseAttendanceService {
             constructor() {
                 this.db = window.firebaseDb;
@@ -616,28 +857,69 @@
                 this.modules = window.firebaseModules;
             }
 
+            async register(email, password, userData) {
+                try {
+                    console.log('🔄 Registrando usuario:', email);
+                    
+                    // Crear usuario en Firebase Auth
+                    const userCredential = await this.modules.createUserWithEmailAndPassword(this.auth, email, password);
+                    const user = userCredential.user;
+                    
+                    console.log('✅ Usuario creado en Auth:', user.uid);
+                    
+                    // Crear perfil en Firestore
+                    const userService = new FirebaseUserService();
+                    const profileResult = await userService.createUserProfile(user.uid, {
+                        ...userData,
+                        email: user.email
+                    });
+                    
+                    if (!profileResult.success) {
+                        throw new Error('Error creando perfil: ' + profileResult.error);
+                    }
+                    
+                    return { 
+                        success: true, 
+                        user: { 
+                            uid: user.uid, 
+                            email: user.email, 
+                            ...profileResult.profile 
+                        } 
+                    };
+                } catch (error) {
+                    console.error('❌ Register error:', error);
+                    return { success: false, error: this.getErrorMessage(error.code) || error.message };
+                }
+            }
+
             async login(email, password) {
                 try {
+                    console.log('🔄 Iniciando sesión:', email);
+                    
                     const userCredential = await this.modules.signInWithEmailAndPassword(this.auth, email, password);
                     const user = userCredential.user;
                     
-                    // Obtener datos adicionales del usuario
-                    const userDoc = await this.modules.getDoc(this.modules.doc(this.db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        return { 
-                            success: true, 
-                            user: { 
-                                uid: user.uid, 
-                                email: user.email, 
-                                ...userDoc.data() 
-                            } 
-                        };
-                    } else {
-                        throw new Error('Datos de usuario no encontrados en Firestore');
+                    console.log('✅ Usuario autenticado:', user.uid);
+                    
+                    // Obtener perfil del usuario
+                    const userService = new FirebaseUserService();
+                    const profileResult = await userService.getUserProfile(user.uid);
+                    
+                    if (!profileResult.success) {
+                        throw new Error('Perfil de usuario no encontrado');
                     }
+                    
+                    return { 
+                        success: true, 
+                        user: { 
+                            uid: user.uid, 
+                            email: user.email, 
+                            ...profileResult.profile 
+                        } 
+                    };
                 } catch (error) {
-                    console.error('Login error:', error);
-                    return { success: false, error: error.message };
+                    console.error('❌ Login error:', error);
+                    return { success: false, error: this.getErrorMessage(error.code) || error.message };
                 }
             }
 
@@ -654,12 +936,14 @@
                 return this.modules.onAuthStateChanged(this.auth, async (user) => {
                     if (user) {
                         try {
-                            const userDoc = await this.modules.getDoc(this.modules.doc(this.db, 'users', user.uid));
-                            if (userDoc.exists()) {
+                            const userService = new FirebaseUserService();
+                            const profileResult = await userService.getUserProfile(user.uid);
+                            
+                            if (profileResult.success) {
                                 callback({ 
                                     uid: user.uid, 
                                     email: user.email, 
-                                    ...userDoc.data() 
+                                    ...profileResult.profile 
                                 });
                             } else {
                                 callback(null);
@@ -673,48 +957,84 @@
                     }
                 });
             }
+
+            getErrorMessage(errorCode) {
+                const errorMessages = {
+                    'auth/email-already-in-use': 'Este correo electrónico ya está registrado',
+                    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
+                    'auth/invalid-email': 'Correo electrónico inválido',
+                    'auth/user-not-found': 'Usuario no encontrado',
+                    'auth/wrong-password': 'Contraseña incorrecta',
+                    'auth/too-many-requests': 'Demasiados intentos fallidos. Intenta más tarde',
+                    'auth/network-request-failed': 'Error de conexión. Verifica tu internet'
+                };
+                return errorMessages[errorCode] || 'Error de autenticación';
+            }
         }
 
         // Instancias de servicios
         let attendanceService;
         let authService;
+        let userService;
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
+            console.log('🚀 DOM cargado, inicializando aplicación...');
+            
+            // Mostrar pantalla de auth por defecto
+            showAuthScreen();
+            
+            // Inicializar app
+            initializeApp().catch(error => {
+                console.error('❌ Error fatal en inicialización:', error);
+                updateFirebaseStatus('error', '❌ Error fatal: ' + error.message);
+                // Asegurar que se muestre la pantalla de auth
+                showAuthScreen();
+            });
         });
 
         async function initializeApp() {
             try {
                 // Esperar a que Firebase esté disponible
                 await waitForFirebase();
-                
-                // Configurar usuario por defecto (en producción esto vendría de autenticación)
-                currentUser = {
-                    uid: 'demo-user-123',
-                    name: 'Prof. María García',
-                    email: 'maria.garcia@sanignacio.edu',
-                    role: 'teacher',
-                    school_id: 'colegio-san-ignacio-123',
-                    school_name: 'Colegio San Ignacio'
-                };
 
                 // Inicializar servicios
                 attendanceService = new FirebaseAttendanceService();
                 authService = new FirebaseAuthService();
-
-                // Probar conexión a Firebase
-                await testFirebaseConnection();
+                userService = new FirebaseUserService();
 
                 setupEventListeners();
                 setTodayDate();
-                loadTodayData();
 
-                updateFirebaseStatus('connected', '✅ Conectado a Firebase - Base de Datos San Ignacio');
+                // Configurar listener de autenticación
+                authService.onAuthChange((user) => {
+                    if (user) {
+                        console.log('✅ Usuario autenticado:', user);
+                        currentUser = user;
+                        showMainApp();
+                        updateUserInterface();
+                        loadTodayData();
+                    } else {
+                        console.log('❌ Usuario no autenticado');
+                        currentUser = null;
+                        showAuthScreen();
+                    }
+                });
+
+                // Probar conexión a Firebase después de configurar auth
+                try {
+                    await testFirebaseConnection();
+                    updateFirebaseStatus('connected', '✅ Conectado a Firebase - Base de Datos San Ignacio');
+                } catch (error) {
+                    console.warn('Conexión inicial falló, pero continuando:', error);
+                    updateFirebaseStatus('connected', '⚠️ Firebase inicializado - Esperando autenticación');
+                }
 
             } catch (error) {
                 console.error('Error initializing app:', error);
                 updateFirebaseStatus('error', '❌ Error inicializando aplicación: ' + error.message);
+                // Mostrar pantalla de auth incluso si hay error
+                showAuthScreen();
             }
         }
 
@@ -740,11 +1060,11 @@
 
         async function testFirebaseConnection() {
             try {
-                // Intentar crear una colección de prueba
+                // Intentar crear una colección de prueba (sin depender de currentUser)
                 const testDoc = {
                     test: true,
                     timestamp: new Date().toISOString(),
-                    school_id: currentUser.school_id
+                    school_id: 'test-connection'
                 };
                 
                 const docRef = await window.firebaseModules.addDoc(
@@ -767,6 +1087,18 @@
         }
 
         function setupEventListeners() {
+            // Tabs de autenticación
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.dataset.authTab;
+                    switchAuthTab(tabName);
+                });
+            });
+
+            // Forms de autenticación
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+
             // Tabs de navegación
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.addEventListener('click', function() {
@@ -789,6 +1121,221 @@
             // Reportes
             document.getElementById('report-start-date').addEventListener('change', updateFirebaseReportSummary);
             document.getElementById('report-end-date').addEventListener('change', updateFirebaseReportSummary);
+        }
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').style.display = 'block';
+            document.getElementById('main-app').style.display = 'none';
+        }
+
+        function showMainApp() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+        }
+
+        function switchAuthTab(tabName) {
+            // Actualizar tabs activos
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-auth-tab="${tabName}"]`).classList.add('active');
+
+            // Mostrar contenido correspondiente
+            document.querySelectorAll('.auth-form-container').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-form-container`).classList.add('active');
+        }
+
+        function updateUserInterface() {
+            if (!currentUser) return;
+
+            // Actualizar información del usuario
+            document.getElementById('user-welcome').textContent = `Bienvenido, ${currentUser.name}`;
+            document.getElementById('user-email').textContent = currentUser.email;
+            document.getElementById('user-department').textContent = `Departamento: ${getDepartmentName(currentUser.department)}`;
+            
+            // Actualizar badge de rol
+            const roleBadge = document.getElementById('user-role-badge');
+            roleBadge.textContent = currentUser.role === 'admin' ? '👑 Administrador' : '👤 Usuario';
+            roleBadge.className = `role-badge ${currentUser.role === 'admin' ? 'role-admin' : 'role-user'}`;
+
+            // Mostrar/ocultar tabs según el rol
+            const studentsTab = document.getElementById('students-tab');
+            if (currentUser.role === 'admin') {
+                studentsTab.style.display = 'block';
+            } else {
+                studentsTab.style.display = 'none';
+            }
+        }
+
+        function getDepartmentName(department) {
+            const departments = {
+                'primaria': '📚 Educación Primaria',
+                'secundaria': '🎓 Educación Secundaria',
+                'matematicas': '🔢 Matemáticas',
+                'ciencias': '🔬 Ciencias Naturales',
+                'lenguaje': '📖 Lenguaje y Literatura',
+                'sociales': '🌍 Ciencias Sociales',
+                'educacion_fisica': '⚽ Educación Física',
+                'artes': '🎨 Artes',
+                'administracion': '🏢 Administración',
+                'direccion': '👑 Dirección'
+            };
+            return departments[department] || department;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            if (!email || !password) {
+                showError('login-error', 'Por favor completa todos los campos');
+                return;
+            }
+
+            // Limpiar errores previos
+            document.getElementById('login-error').style.display = 'none';
+            showLoading('login-loading', true);
+
+            try {
+                const result = await authService.login(email, password);
+                
+                showLoading('login-loading', false);
+
+                if (result.success) {
+                    console.log('✅ Login exitoso:', result.user);
+                    // El listener onAuthChange se encargará de mostrar la app principal
+                } else {
+                    showError('login-error', `❌ ${result.error}`);
+                }
+            } catch (error) {
+                showLoading('login-loading', false);
+                showError('login-error', `❌ Error inesperado: ${error.message}`);
+                console.error('Error en handleLogin:', error);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const role = formData.get('role');
+            const department = formData.get('department');
+
+            if (!name || !email || !password || !role || !department) {
+                showError('register-error', 'Por favor completa todos los campos');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('register-error', 'La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+
+            showLoading('register-loading', true);
+
+            const result = await authService.register(email, password, {
+                name: name,
+                role: role,
+                department: department
+            });
+            
+            showLoading('register-loading', false);
+
+            if (result.success) {
+                showSuccess('register-success', `✅ Cuenta creada exitosamente para ${name}. Iniciando sesión...`);
+                e.target.reset();
+                
+                // Cambiar a tab de login después de un momento
+                setTimeout(() => {
+                    switchAuthTab('login');
+                }, 2000);
+            } else {
+                showError('register-error', `❌ ${result.error}`);
+            }
+        }
+
+        async function handleLogout() {
+            const result = await authService.logout();
+            if (result.success) {
+                console.log('✅ Logout exitoso');
+                // El listener onAuthChange se encargará de mostrar la pantalla de login
+            } else {
+                console.error('❌ Error en logout:', result.error);
+            }
+        }
+
+        async function loginDemo(role) {
+            // Limpiar errores previos
+            document.getElementById('login-error').style.display = 'none';
+            showLoading('login-loading', true);
+
+            try {
+                // Credenciales de demostración
+                const demoCredentials = {
+                    admin: {
+                        email: 'admin@sanignacio.edu',
+                        password: 'admin123'
+                    },
+                    user: {
+                        email: 'docente@sanignacio.edu',
+                        password: 'docente123'
+                    }
+                };
+
+                const credentials = demoCredentials[role];
+                if (!credentials) {
+                    showLoading('login-loading', false);
+                    showError('login-error', 'Credenciales de demostración no válidas');
+                    return;
+                }
+
+                console.log(`🔄 Intentando login demo para ${role}:`, credentials.email);
+
+                const result = await authService.login(credentials.email, credentials.password);
+                
+                if (result.success) {
+                    showLoading('login-loading', false);
+                    console.log('✅ Login demo exitoso:', result.user);
+                } else {
+                    console.log('❌ Login demo falló, intentando crear usuario:', result.error);
+                    
+                    // Si el usuario demo no existe, intentar crearlo
+                    if (result.error.includes('Usuario no encontrado') || result.error.includes('user-not-found')) {
+                        console.log('🔄 Creando usuario demo...');
+                        
+                        const userData = {
+                            name: role === 'admin' ? 'Administrador Demo' : 'Docente Demo',
+                            role: role === 'admin' ? 'admin' : 'user',
+                            department: role === 'admin' ? 'direccion' : 'primaria'
+                        };
+
+                        const registerResult = await authService.register(credentials.email, credentials.password, userData);
+                        
+                        showLoading('login-loading', false);
+
+                        if (registerResult.success) {
+                            console.log('✅ Usuario demo creado y logueado:', registerResult.user);
+                        } else {
+                            showError('login-error', `❌ Error creando usuario demo: ${registerResult.error}`);
+                        }
+                    } else {
+                        showLoading('login-loading', false);
+                        showError('login-error', `❌ ${result.error}`);
+                    }
+                }
+            } catch (error) {
+                showLoading('login-loading', false);
+                showError('login-error', `❌ Error inesperado en demo: ${error.message}`);
+                console.error('Error en loginDemo:', error);
+            }
         }
 
         function setTodayDate() {
@@ -1386,5 +1933,5 @@
             }, 1000);
         });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995bfa7762dbe855',t:'MTc2MTY3MDcxMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995c38a0b2eac9df',t:'MTc2MTY3MzI1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
