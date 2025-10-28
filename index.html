@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es">
-<head>
+ <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Asistencia Escolar</title>
@@ -341,26 +341,26 @@
             .container {
                 padding: 5px;
             }
-           
+            
             .header h1 {
                 font-size: 20px;
             }
-           
+            
             .attendance-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 5px;
             }
-           
+            
             .attendance-btn {
                 padding: 6px;
                 font-size: 11px;
             }
-           
+            
             .nav-tabs {
                 grid-template-columns: 1fr;
                 gap: 2px;
             }
-           
+            
             .nav-tab {
                 font-size: 12px;
                 padding: 8px;
@@ -369,8 +369,8 @@
     </style>
   <style>@view-transition { navigation: auto; }</style>
   <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
-</head>
-<body>
+ </head>
+ <body>
   <main class="container">
    <header class="header">
     <h1 id="school-name">Sistema de Asistencia Escolar</h1>
@@ -537,9 +537,9 @@
                 await window.elementSdk.init({
                     defaultConfig,
                     onConfigChange: async (config) => {
-                        document.getElementById('school-name').textContent =
+                        document.getElementById('school-name').textContent = 
                             config.school_name || defaultConfig.school_name;
-                        document.getElementById('academic-year').textContent =
+                        document.getElementById('academic-year').textContent = 
                             `Año Académico ${config.academic_year || defaultConfig.academic_year}`;
                     },
                     mapToCapabilities: (config) => ({
@@ -581,4 +581,542 @@
                 });
             });
 
-     
+            // Botones de asistencia
+            document.querySelectorAll('.attendance-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectAttendanceStatus(this.dataset.status);
+                });
+            });
+
+            // Form de asistencia
+            document.getElementById('attendance-form').addEventListener('submit', handleAttendanceSubmit);
+
+            // Form de asistencia por aula
+            document.getElementById('classroom-form').addEventListener('submit', handleClassroomSubmit);
+        }
+
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('attendance-date').value = today;
+            document.getElementById('classroom-date').value = today;
+            document.getElementById('report-start-date').value = today;
+            document.getElementById('report-end-date').value = today;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            // Validar credenciales
+            const userCreds = credentials[currentUserType];
+            if (username === userCreds.username && password === userCreds.password) {
+                currentUser = {
+                    name: userCreds.name,
+                    type: currentUserType,
+                    username: username
+                };
+
+                // Mostrar aplicación principal
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+
+                // Configurar interfaz según tipo de usuario
+                setupUserInterface();
+                
+                errorDiv.style.display = 'none';
+            } else {
+                errorDiv.textContent = 'Credenciales incorrectas. Verifica tu usuario y contraseña.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function setupUserInterface() {
+            document.getElementById('user-welcome').textContent = `Bienvenido, ${currentUser.name}`;
+            document.getElementById('user-role').textContent = 
+                currentUser.type === 'director' ? 'Director de la Institución' : 'Docente';
+
+            // Mostrar tab de estudiantes solo para directores
+            if (currentUser.type === 'director') {
+                document.getElementById('students-tab').style.display = 'block';
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('login-form').reset();
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function switchTab(tabName) {
+            // Actualizar tabs activos
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Mostrar contenido correspondiente
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            // Cargar datos específicos del tab
+            if (tabName === 'students' && currentUser.type === 'director') {
+                loadAllRecords();
+            }
+        }
+
+        function selectAttendanceStatus(status) {
+            selectedStatus = status;
+            
+            // Actualizar botones
+            document.querySelectorAll('.attendance-btn').forEach(btn => {
+                btn.style.opacity = btn.dataset.status === status ? '1' : '0.5';
+                btn.style.transform = btn.dataset.status === status ? 'scale(1.05)' : 'scale(1)';
+            });
+        }
+
+        async function handleAttendanceSubmit(e) {
+            e.preventDefault();
+
+            if (!selectedStatus) {
+                showError('attendance-error', 'Por favor selecciona un estado de asistencia');
+                return;
+            }
+
+            if (attendanceRecords.length >= 999) {
+                showError('attendance-error', 'Se ha alcanzado el límite máximo de 999 registros. Por favor elimina algunos registros primero.');
+                return;
+            }
+
+            const formData = new FormData(e.target);
+            const studentName = formData.get('student-name');
+            const studentId = formData.get('student-id');
+            const date = formData.get('attendance-date');
+            const notes = formData.get('notes') || '';
+
+            showLoading('attendance-loading', true);
+
+            const attendanceRecord = {
+                id: `${studentId}-${date}-${Date.now()}`,
+                type: 'individual',
+                student_name: studentName,
+                student_id: studentId,
+                date: date,
+                status: selectedStatus,
+                teacher: currentUser.name,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            };
+
+            const result = await window.dataSdk.create(attendanceRecord);
+            
+            showLoading('attendance-loading', false);
+
+            if (result.isOk) {
+                showSuccess('attendance-success', `Asistencia registrada correctamente para ${studentName}`);
+                e.target.reset();
+                setTodayDate();
+                selectedStatus = null;
+                
+                // Resetear botones
+                document.querySelectorAll('.attendance-btn').forEach(btn => {
+                    btn.style.opacity = '1';
+                    btn.style.transform = 'scale(1)';
+                });
+            } else {
+                showError('attendance-error', 'Error al guardar la asistencia. Inténtalo de nuevo.');
+            }
+        }
+
+        async function handleClassroomSubmit(e) {
+            e.preventDefault();
+
+            if (attendanceRecords.length >= 999) {
+                showError('classroom-error', 'Se ha alcanzado el límite máximo de 999 registros. Por favor elimina algunos registros primero.');
+                return;
+            }
+
+            const formData = new FormData(e.target);
+            const grade = formData.get('classroom-grade');
+            const section = formData.get('classroom-section');
+            const date = formData.get('classroom-date');
+            const malePresent = parseInt(formData.get('male-present')) || 0;
+            const femalePresent = parseInt(formData.get('female-present')) || 0;
+            const totalAbsent = parseInt(formData.get('total-absent')) || 0;
+            const totalEnrolled = parseInt(formData.get('total-enrolled')) || 0;
+            const notes = formData.get('classroom-notes') || '';
+
+            // Validaciones
+            const totalPresent = malePresent + femalePresent;
+            if (totalPresent + totalAbsent !== totalEnrolled) {
+                showError('classroom-error', `Error: Los presentes (${totalPresent}) + ausentes (${totalAbsent}) deben sumar el total matriculado (${totalEnrolled})`);
+                return;
+            }
+
+            showLoading('classroom-loading', true);
+
+            const classroomRecord = {
+                id: `${grade}-${section}-${date}`,
+                type: 'classroom',
+                grade: grade,
+                section: section,
+                date: date,
+                male_count: malePresent,
+                female_count: femalePresent,
+                absent_count: totalAbsent,
+                total_enrolled: totalEnrolled,
+                teacher: currentUser.name,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            };
+
+            const result = await window.dataSdk.create(classroomRecord);
+            
+            showLoading('classroom-loading', false);
+
+            if (result.isOk) {
+                showSuccess('classroom-success', `Asistencia registrada para ${grade} ${section}: ${totalPresent} presentes, ${totalAbsent} ausentes`);
+                e.target.reset();
+                setTodayDate();
+            } else {
+                showError('classroom-error', 'Error al guardar la asistencia del aula. Inténtalo de nuevo.');
+            }
+        }
+
+        function updateAttendanceDisplay() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecords = attendanceRecords.filter(record => 
+                record.date === today && record.type !== 'classroom'
+            );
+            
+            const container = document.getElementById('today-records');
+            
+            if (todayRecords.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">No hay registros individuales para hoy</p>';
+                return;
+            }
+
+            container.innerHTML = todayRecords.map(record => `
+                <div class="attendance-item">
+                    <div class="attendance-info">
+                        <h4>${record.student_name} (ID: ${record.student_id})</h4>
+                        <p>Docente: ${record.teacher}</p>
+                        ${record.notes ? `<p>Notas: ${record.notes}</p>` : ''}
+                    </div>
+                    <div class="status-badge status-${record.status}">
+                        ${getStatusText(record.status)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateClassroomDisplay() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayClassrooms = attendanceRecords.filter(record => 
+                record.date === today && record.type === 'classroom'
+            );
+            
+            const container = document.getElementById('today-classroom-records');
+            
+            if (todayClassrooms.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">No hay registros de aulas para hoy</p>';
+                return;
+            }
+
+            container.innerHTML = todayClassrooms.map(record => `
+                <div class="attendance-item">
+                    <div class="attendance-info">
+                        <h4>${record.grade} - Sección ${record.section}</h4>
+                        <p>👦 Varones: ${record.male_count} | 👧 Mujeres: ${record.female_count}</p>
+                        <p>❌ Ausentes: ${record.absent_count} | 👥 Total: ${record.total_enrolled}</p>
+                        <p>Docente: ${record.teacher}</p>
+                        ${record.notes ? `<p>Notas: ${record.notes}</p>` : ''}
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #48bb78;">
+                            ${record.male_count + record.female_count}
+                        </div>
+                        <div style="font-size: 12px; color: #4a5568;">Presentes</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                presente: 'Presente',
+                ausente: 'Ausente',
+                tardanza: 'Tardanza',
+                justificado: 'Justificado'
+            };
+            return statusMap[status] || status;
+        }
+
+        async function generateExcelReport() {
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+
+            if (!startDate || !endDate) {
+                showError('report-error', 'Por favor selecciona las fechas de inicio y fin');
+                return;
+            }
+
+            showLoading('report-loading', true);
+
+            // Filtrar registros por fecha
+            const filteredRecords = attendanceRecords.filter(record => {
+                return record.date >= startDate && record.date <= endDate;
+            });
+
+            if (filteredRecords.length === 0) {
+                showLoading('report-loading', false);
+                showError('report-error', 'No hay registros en el rango de fechas seleccionado');
+                return;
+            }
+
+            // Separar registros individuales y de aula
+            const individualRecords = filteredRecords.filter(record => record.type !== 'classroom');
+            const classroomRecords = filteredRecords.filter(record => record.type === 'classroom');
+
+            // Preparar datos para Excel - Registros Individuales
+            const individualData = individualRecords.map(record => ({
+                'Fecha': record.date,
+                'Nombre del Estudiante': record.student_name,
+                'ID Estudiante': record.student_id,
+                'Estado': getStatusText(record.status),
+                'Docente': record.teacher,
+                'Notas': record.notes || '',
+                'Hora de Registro': new Date(record.timestamp).toLocaleString('es-ES')
+            }));
+
+            // Preparar datos para Excel - Registros por Aula
+            const classroomData = classroomRecords.map(record => ({
+                'Fecha': record.date,
+                'Grado': record.grade,
+                'Sección': record.section,
+                'Varones Presentes': record.male_count,
+                'Mujeres Presentes': record.female_count,
+                'Total Presentes': record.male_count + record.female_count,
+                'Total Ausentes': record.absent_count,
+                'Total Matriculados': record.total_enrolled,
+                'Docente': record.teacher,
+                'Notas': record.notes || '',
+                'Hora de Registro': new Date(record.timestamp).toLocaleString('es-ES')
+            }));
+
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new();
+
+            // Hoja de registros individuales
+            if (individualData.length > 0) {
+                const wsIndividual = XLSX.utils.json_to_sheet(individualData);
+                const colWidthsIndividual = [
+                    { wch: 12 }, // Fecha
+                    { wch: 25 }, // Nombre
+                    { wch: 15 }, // ID
+                    { wch: 12 }, // Estado
+                    { wch: 20 }, // Docente
+                    { wch: 30 }, // Notas
+                    { wch: 20 }  // Hora
+                ];
+                wsIndividual['!cols'] = colWidthsIndividual;
+                XLSX.utils.book_append_sheet(wb, wsIndividual, 'Asistencia Individual');
+            }
+
+            // Hoja de registros por aula
+            if (classroomData.length > 0) {
+                const wsClassroom = XLSX.utils.json_to_sheet(classroomData);
+                const colWidthsClassroom = [
+                    { wch: 12 }, // Fecha
+                    { wch: 10 }, // Grado
+                    { wch: 10 }, // Sección
+                    { wch: 15 }, // Varones
+                    { wch: 15 }, // Mujeres
+                    { wch: 15 }, // Total Presentes
+                    { wch: 15 }, // Ausentes
+                    { wch: 15 }, // Matriculados
+                    { wch: 20 }, // Docente
+                    { wch: 30 }, // Notas
+                    { wch: 20 }  // Hora
+                ];
+                wsClassroom['!cols'] = colWidthsClassroom;
+                XLSX.utils.book_append_sheet(wb, wsClassroom, 'Asistencia por Aula');
+            }
+
+            // Generar nombre de archivo
+            const fileName = `Reporte_Asistencia_${startDate}_${endDate}.xlsx`;
+
+            // Descargar archivo
+            XLSX.writeFile(wb, fileName);
+
+            showLoading('report-loading', false);
+            showSuccess('report-success', `Reporte generado exitosamente: ${fileName}`);
+        }
+
+        function updateReportSummary() {
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+
+            if (!startDate || !endDate) return;
+
+            const filteredRecords = attendanceRecords.filter(record => {
+                return record.date >= startDate && record.date <= endDate;
+            });
+
+            // Separar registros individuales y de aula
+            const individualRecords = filteredRecords.filter(record => record.type !== 'classroom');
+            const classroomRecords = filteredRecords.filter(record => record.type === 'classroom');
+
+            // Resumen individual
+            const individualSummary = {
+                total: individualRecords.length,
+                presente: individualRecords.filter(r => r.status === 'presente').length,
+                ausente: individualRecords.filter(r => r.status === 'ausente').length,
+                tardanza: individualRecords.filter(r => r.status === 'tardanza').length,
+                justificado: individualRecords.filter(r => r.status === 'justificado').length
+            };
+
+            // Resumen por aula
+            const classroomSummary = {
+                totalAulas: classroomRecords.length,
+                totalVarones: classroomRecords.reduce((sum, r) => sum + (r.male_count || 0), 0),
+                totalMujeres: classroomRecords.reduce((sum, r) => sum + (r.female_count || 0), 0),
+                totalAusentes: classroomRecords.reduce((sum, r) => sum + (r.absent_count || 0), 0),
+                totalMatriculados: classroomRecords.reduce((sum, r) => sum + (r.total_enrolled || 0), 0)
+            };
+
+            const summaryContainer = document.getElementById('report-summary');
+            summaryContainer.innerHTML = `
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2d3748;">📊 Resumen del Período</h4>
+                    
+                    ${individualRecords.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="margin: 0 0 10px 0; color: #4a5568;">👤 Asistencia Individual</h5>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
+                            <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #2d3748;">${individualSummary.total}</div>
+                                <div style="font-size: 11px; color: #4a5568;">Total</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #c6f6d5; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #22543d;">${individualSummary.presente}</div>
+                                <div style="font-size: 11px; color: #22543d;">Presentes</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #fed7d7; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #742a2a;">${individualSummary.ausente}</div>
+                                <div style="font-size: 11px; color: #742a2a;">Ausentes</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #feebc8; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #7b341e;">${individualSummary.tardanza}</div>
+                                <div style="font-size: 11px; color: #7b341e;">Tardanzas</div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${classroomRecords.length > 0 ? `
+                    <div>
+                        <h5 style="margin: 0 0 10px 0; color: #4a5568;">🏫 Asistencia por Aula</h5>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
+                            <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #2d3748;">${classroomSummary.totalAulas}</div>
+                                <div style="font-size: 11px; color: #4a5568;">Aulas</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #bee3f8; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #2a4365;">${classroomSummary.totalVarones}</div>
+                                <div style="font-size: 11px; color: #2a4365;">👦 Varones</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #fbb6ce; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #97266d;">${classroomSummary.totalMujeres}</div>
+                                <div style="font-size: 11px; color: #97266d;">👧 Mujeres</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #fed7d7; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #742a2a;">${classroomSummary.totalAusentes}</div>
+                                <div style="font-size: 11px; color: #742a2a;">❌ Ausentes</div>
+                            </div>
+                            <div style="text-align: center; padding: 8px; background: #c6f6d5; border-radius: 6px;">
+                                <div style="font-size: 18px; font-weight: bold; color: #22543d;">${classroomSummary.totalVarones + classroomSummary.totalMujeres}</div>
+                                <div style="font-size: 11px; color: #22543d;">✅ Presentes</div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${filteredRecords.length === 0 ? '<p style="text-align: center; color: #4a5568; margin: 0;">No hay registros en el período seleccionado</p>' : ''}
+                </div>
+            `;
+        }
+
+        function loadAllRecords() {
+            const container = document.getElementById('all-records');
+            
+            if (attendanceRecords.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">No hay registros disponibles</p>';
+                return;
+            }
+
+            // Agrupar por estudiante
+            const studentGroups = {};
+            attendanceRecords.forEach(record => {
+                if (!studentGroups[record.student_id]) {
+                    studentGroups[record.student_id] = {
+                        name: record.student_name,
+                        records: []
+                    };
+                }
+                studentGroups[record.student_id].records.push(record);
+            });
+
+            container.innerHTML = Object.entries(studentGroups).map(([studentId, data]) => `
+                <div style="background: #f7fafc; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #2d3748;">${data.name} (ID: ${studentId})</h4>
+                    <div style="font-size: 12px; color: #4a5568;">Total de registros: ${data.records.length}</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 10px;">
+                        ${data.records.slice(-5).map(record => `
+                            <div style="background: white; padding: 8px; border-radius: 4px; font-size: 11px;">
+                                <div><strong>${record.date}</strong></div>
+                                <div class="status-badge status-${record.status}" style="margin-top: 4px; display: inline-block;">
+                                    ${getStatusText(record.status)}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showLoading(elementId, show) {
+            document.getElementById(elementId).style.display = show ? 'block' : 'none';
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        // Actualizar resumen cuando cambien las fechas
+        document.getElementById('report-start-date').addEventListener('change', updateReportSummary);
+        document.getElementById('report-end-date').addEventListener('change', updateReportSummary);
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995b4a0c00e3c9df',t:'MTc2MTY2MzQ4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
