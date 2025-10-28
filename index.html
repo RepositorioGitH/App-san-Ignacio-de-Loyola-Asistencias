@@ -9,14 +9,15 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, doc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        // Configuración Firebase (REEMPLAZA CON TUS CREDENCIALES)
+        // Configuración Firebase - San Ignacio
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "tu-proyecto.firebaseapp.com",
-            projectId: "tu-proyecto-id",
-            storageBucket: "tu-proyecto.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "tu-app-id"
+            apiKey: "AIzaSyDjkCjj1iLMi3Z22o6cj1Xa-yYDoqjBm04",
+            authDomain: "base-de-datos-san-ignacio.firebaseapp.com",
+            projectId: "base-de-datos-san-ignacio",
+            storageBucket: "base-de-datos-san-ignacio.firebasestorage.app",
+            messagingSenderId: "698408506523",
+            appId: "1:698408506523:web:ede2c739a1920e8956a23e",
+            measurementId: "G-Z16V5DDNB8"
         };
 
         // Inicializar Firebase
@@ -395,16 +396,16 @@
   <main class="container">
    <header class="header">
     <h1>Sistema de Asistencia Escolar - Firebase</h1>
-    <p>Año Académico 2024-2025</p>
+    <p>Año Académico 2025</p>
    </header><!-- Estado de Firebase -->
    <div id="firebase-status" class="firebase-status connected">
-    ✅ Sistema funcionando con datos simulados de Firebase
+    ✅ Conectado a Firebase - Base de Datos San Ignacio
    </div><!-- Aplicación Principal -->
    <section id="main-app" class="main-app" style="display: block;">
     <div class="user-info">
-     <h3 id="user-welcome">Bienvenido, Prof. María García</h3>
-     <p id="user-role">Rol: Docente</p>
-     <p id="user-school">Escuela: Escuela Primaria San José</p>
+     <h3 id="user-welcome">Bienvenido, Prof. Roberto Carlos Rivas</h3>
+     <p id="user-role">Rol: Director</p>
+     <p id="user-school">Institución: Colegio San Ignacio de loyola</p>
     </div>
     <nav class="nav-tabs">
      <div class="nav-tab active" data-tab="attendance">
@@ -653,10 +654,10 @@
                 currentUser = {
                     uid: 'demo-user-123',
                     name: 'Prof. María García',
-                    email: 'maria.garcia@escuela.com',
+                    email: 'maria.garcia@sanignacio.edu',
                     role: 'teacher',
-                    school_id: 'escuela-san-jose-123',
-                    school_name: 'Escuela Primaria San José'
+                    school_id: 'colegio-san-ignacio-123',
+                    school_name: 'Colegio San Ignacio'
                 };
 
                 // Inicializar servicios con datos simulados
@@ -1234,5 +1235,5 @@
             }
         }
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995bc990c23ca540',t:'MTc2MTY2ODcwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995be5e90383a4d4',t:'MTc2MTY2OTg2OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
