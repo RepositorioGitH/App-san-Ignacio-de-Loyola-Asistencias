@@ -548,6 +548,7 @@
      <div id="login-form-container" class="auth-form-container active">
       <h3>Iniciar Sesión</h3>
       <div class="error-message" id="login-error"></div>
+      <div class="success-message" id="login-success"></div>
       <div class="loading" id="login-loading">
        <div class="spinner"></div> Iniciando sesión...
       </div>
@@ -995,45 +996,57 @@
 
         async function initializeApp() {
             try {
+                console.log('🚀 Iniciando aplicación...');
+                
                 // Esperar a que Firebase esté disponible
                 await waitForFirebase();
+                console.log('✅ Firebase disponible');
 
                 // Inicializar servicios
                 attendanceService = new FirebaseAttendanceService();
                 authService = new FirebaseAuthService();
                 userService = new FirebaseUserService();
+                console.log('✅ Servicios inicializados');
 
                 setupEventListeners();
                 setTodayDate();
 
-                // Configurar listener de autenticación
+                // Configurar listener de autenticación ANTES de cualquier otra cosa
+                console.log('🔄 Configurando listener de autenticación...');
                 authService.onAuthChange((user) => {
+                    console.log('🔄 Estado de autenticación cambió:', user ? 'Usuario logueado' : 'Usuario no logueado');
+                    
                     if (user) {
                         console.log('✅ Usuario autenticado:', user);
                         currentUser = user;
                         showMainApp();
                         updateUserInterface();
                         loadTodayData();
+                        updateFirebaseStatus('connected', `✅ Conectado como ${user.name || user.email}`);
                     } else {
                         console.log('❌ Usuario no autenticado');
                         currentUser = null;
                         showAuthScreen();
+                        updateFirebaseStatus('connected', '⚠️ Firebase listo - Esperando login');
                     }
                 });
 
-                // Probar conexión a Firebase después de configurar auth
+                // Probar conexión básica a Firebase
                 try {
                     await testFirebaseConnection();
-                    updateFirebaseStatus('connected', '✅ Conectado a Firebase - Base de Datos San Ignacio');
+                    console.log('✅ Conexión a Firebase exitosa');
+                    updateFirebaseStatus('connected', '✅ Firebase conectado - Listo para usar');
                 } catch (error) {
-                    console.warn('Conexión inicial falló, pero continuando:', error);
-                    updateFirebaseStatus('connected', '⚠️ Firebase inicializado - Esperando autenticación');
+                    console.warn('⚠️ Conexión inicial falló, pero continuando:', error);
+                    updateFirebaseStatus('connected', '⚠️ Firebase inicializado - Puede haber problemas de red');
                 }
 
+                console.log('🎉 Aplicación inicializada correctamente');
+
             } catch (error) {
-                console.error('Error initializing app:', error);
-                updateFirebaseStatus('error', '❌ Error inicializando aplicación: ' + error.message);
-                // Mostrar pantalla de auth incluso si hay error
+                console.error('❌ Error crítico inicializando aplicación:', error);
+                updateFirebaseStatus('error', '❌ Error crítico: ' + error.message);
+                // Asegurar que se muestre la pantalla de auth
                 showAuthScreen();
             }
         }
@@ -1192,8 +1205,16 @@
             const email = formData.get('email');
             const password = formData.get('password');
 
+            console.log('🔄 Intentando login con:', email);
+
             if (!email || !password) {
                 showError('login-error', 'Por favor completa todos los campos');
+                return;
+            }
+
+            // Verificar que authService esté disponible
+            if (!authService) {
+                showError('login-error', 'Sistema de autenticación no está listo. Recarga la página.');
                 return;
             }
 
@@ -1202,20 +1223,24 @@
             showLoading('login-loading', true);
 
             try {
+                console.log('🔄 Llamando a authService.login...');
                 const result = await authService.login(email, password);
                 
+                console.log('📋 Resultado del login:', result);
                 showLoading('login-loading', false);
 
                 if (result.success) {
                     console.log('✅ Login exitoso:', result.user);
                     // El listener onAuthChange se encargará de mostrar la app principal
+                    showSuccess('login-success', '✅ Iniciando sesión...');
                 } else {
+                    console.error('❌ Login falló:', result.error);
                     showError('login-error', `❌ ${result.error}`);
                 }
             } catch (error) {
                 showLoading('login-loading', false);
-                showError('login-error', `❌ Error inesperado: ${error.message}`);
-                console.error('Error en handleLogin:', error);
+                console.error('❌ Error crítico en handleLogin:', error);
+                showError('login-error', `❌ Error crítico: ${error.message}`);
             }
         }
 
@@ -1273,8 +1298,17 @@
         }
 
         async function loginDemo(role) {
+            console.log(`🔄 Iniciando login demo para rol: ${role}`);
+            
+            // Verificar que authService esté disponible
+            if (!authService) {
+                showError('login-error', 'Sistema de autenticación no está listo. Recarga la página.');
+                return;
+            }
+
             // Limpiar errores previos
             document.getElementById('login-error').style.display = 'none';
+            document.getElementById('login-success').style.display = 'none';
             showLoading('login-loading', true);
 
             try {
@@ -1304,11 +1338,15 @@
                 if (result.success) {
                     showLoading('login-loading', false);
                     console.log('✅ Login demo exitoso:', result.user);
+                    showSuccess('login-success', `✅ Acceso demo como ${role === 'admin' ? 'Administrador' : 'Docente'}`);
                 } else {
                     console.log('❌ Login demo falló, intentando crear usuario:', result.error);
                     
                     // Si el usuario demo no existe, intentar crearlo
-                    if (result.error.includes('Usuario no encontrado') || result.error.includes('user-not-found')) {
+                    if (result.error.includes('Usuario no encontrado') || 
+                        result.error.includes('user-not-found') || 
+                        result.error.includes('Perfil de usuario no encontrado')) {
+                        
                         console.log('🔄 Creando usuario demo...');
                         
                         const userData = {
@@ -1323,7 +1361,9 @@
 
                         if (registerResult.success) {
                             console.log('✅ Usuario demo creado y logueado:', registerResult.user);
+                            showSuccess('login-success', `✅ Usuario demo creado. Accediendo como ${role === 'admin' ? 'Administrador' : 'Docente'}...`);
                         } else {
+                            console.error('❌ Error creando usuario demo:', registerResult.error);
                             showError('login-error', `❌ Error creando usuario demo: ${registerResult.error}`);
                         }
                     } else {
@@ -1333,8 +1373,8 @@
                 }
             } catch (error) {
                 showLoading('login-loading', false);
-                showError('login-error', `❌ Error inesperado en demo: ${error.message}`);
-                console.error('Error en loginDemo:', error);
+                console.error('❌ Error crítico en loginDemo:', error);
+                showError('login-error', `❌ Error crítico en demo: ${error.message}`);
             }
         }
 
@@ -1865,6 +1905,8 @@
                 setTimeout(() => {
                     element.style.display = 'none';
                 }, 5000);
+            } else {
+                console.warn(`Elemento ${elementId} no encontrado para mostrar éxito:`, message);
             }
         }
 
@@ -1933,5 +1975,5 @@
             }, 1000);
         });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995c38a0b2eac9df',t:'MTc2MTY3MzI1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995c4badd0d7c9df',t:'MTc2MTY3NDAzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
