@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Asistencia Escolar</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100%;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+            min-height: 100%;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #4a5568;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .login-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-type-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .user-type-btn {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .user-type-btn.active {
+            background: #4299e1;
+            color: white;
+            border-color: #4299e1;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4299e1;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3182ce;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #a0aec0;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #718096;
+        }
+
+        .main-app {
+            display: none;
+        }
+
+        .nav-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .nav-tab {
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .nav-tab.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #2d3748;
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .student-form {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .attendance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .attendance-btn {
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .attendance-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .attendance-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .attendance-info h4 {
+            margin: 0 0 5px 0;
+            color: #2d3748;
+            font-size: 14px;
+        }
+
+        .attendance-info p {
+            margin: 0;
+            color: #4a5568;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-presente {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-ausente {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-tardanza {
+            background: #feebc8;
+            color: #7b341e;
+        }
+
+        .status-justificado {
+            background: #bee3f8;
+            color: #2a4365;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #4a5568;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #4299e1;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+           
+            .header h1 {
+                font-size: 20px;
+            }
+           
+            .attendance-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 5px;
+            }
+           
+            .attendance-btn {
+                padding: 6px;
+                font-size: 11px;
+            }
+           
+            .nav-tabs {
+                grid-template-columns: 1fr;
+                gap: 2px;
+            }
+           
+            .nav-tab {
+                font-size: 12px;
+                padding: 8px;
+            }
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+</head>
+<body>
+  <main class="container">
+   <header class="header">
+    <h1 id="school-name">Sistema de Asistencia Escolar</h1>
+    <p id="academic-year">Año Académico 2024-2025</p>
+   </header><!-- Sección de Login -->
+   <section id="login-section" class="login-section">
+    <h2 style="text-align: center; color: #2d3748; margin-bottom: 20px;">Iniciar Sesión</h2>
+    <div class="user-type-selector">
+     <div class="user-type-btn active" data-type="teacher">
+      👨‍🏫 Docente
+     </div>
+     <div class="user-type-btn" data-type="director">
+      👨‍💼 Director
+     </div>
+    </div>
+    <div class="error-message" id="login-error"></div>
+    <form id="login-form">
+     <div class="form-group"><label for="username">Usuario:</label> <input type="text" id="username" name="username" required>
+     </div>
+     <div class="form-group"><label for="password">Contraseña:</label> <input type="password" id="password" name="password" required>
+     </div><button type="submit" class="btn btn-primary">Ingresar</button>
+    </form>
+    <div style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px; font-size: 12px; color: #4a5568;"><strong>Credenciales de prueba:</strong><br>
+      👨‍🏫 Docente: usuario: <code>docente</code> / contraseña: <code>123</code><br>
+      👨‍💼 Director: usuario: <code>director</code> / contraseña: <code>admin</code>
+    </div>
+   </section><!-- Aplicación Principal -->
+   <section id="main-app" class="main-app">
+    <div class="user-info">
+     <h3 id="user-welcome">Bienvenido</h3>
+     <p id="user-role"></p><button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+    </div>
+    <nav class="nav-tabs">
+     <div class="nav-tab active" data-tab="attendance">
+      📝 Individual
+     </div>
+     <div class="nav-tab" data-tab="classroom">
+      🏫 Por Aula
+     </div>
+     <div class="nav-tab" data-tab="reports">
+      📊 Reportes
+     </div>
+     <div class="nav-tab" data-tab="students" id="students-tab" style="display: none;">
+      👥 Estudiantes
+     </div>
+    </nav><!-- Tab de Asistencia Individual -->
+    <div id="attendance-tab" class="tab-content active">
+     <h3>Registro de Asistencia</h3>
+     <div class="success-message" id="attendance-success"></div>
+     <div class="error-message" id="attendance-error"></div>
+     <div class="loading" id="attendance-loading">
+      <div class="spinner"></div> Guardando asistencia...
+     </div>
+     <form id="attendance-form" class="student-form">
+      <div class="form-group"><label for="student-name">Nombre del Estudiante:</label> <input type="text" id="student-name" name="student-name" required>
+      </div>
+      <div class="form-group"><label for="student-id">ID del Estudiante:</label> <input type="text" id="student-id" name="student-id" required>
+      </div>
+      <div class="form-group"><label for="attendance-date">Fecha:</label> <input type="date" id="attendance-date" name="attendance-date" required>
+      </div>
+      <div class="form-group"><label for="notes">Notas (opcional):</label> <input type="text" id="notes" name="notes" placeholder="Observaciones adicionales...">
+      </div>
+      <div class="attendance-grid"><button type="button" class="attendance-btn btn-success" data-status="presente"> ✅ Presente </button> <button type="button" class="attendance-btn btn-danger" data-status="ausente"> ❌ Ausente </button> <button type="button" class="attendance-btn btn-warning" data-status="tardanza"> ⏰ Tardanza </button> <button type="button" class="attendance-btn btn-secondary" data-status="justificado"> 📋 Justificado </button>
+      </div>
+     </form>
+     <div class="attendance-list" id="attendance-list">
+      <h4>Registros de Hoy</h4>
+      <div id="today-records"></div>
+     </div>
+    </div><!-- Tab de Asistencia por Aula -->
+    <div id="classroom-tab" class="tab-content">
+     <h3>Asistencia por Aula</h3>
+     <div class="success-message" id="classroom-success"></div>
+     <div class="error-message" id="classroom-error"></div>
+     <div class="loading" id="classroom-loading">
+      <div class="spinner"></div> Guardando datos del aula...
+     </div>
+     <form id="classroom-form" class="student-form">
+      <div class="form-group"><label for="classroom-grade">Grado:</label> <select id="classroom-grade" name="classroom-grade" required> <option value="">Seleccionar grado</option> <option value="7mo">7mo Grado</option> <option value="8vo">8vo Grado</option> <option value="9no">9no Grado</option> <option value="10mo">10mo Grado</option> <option value="11vo">11vo Grado</option> </select>
+      </div>
+      <div class="form-group"><label for="classroom-section">Sección:</label> <select id="classroom-section" name="classroom-section" required> <option value="">Seleccionar sección</option> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> <option value="D">Sección D</option> </select>
+      </div>
+      <div class="form-group"><label for="classroom-date">Fecha:</label> <input type="date" id="classroom-date" name="classroom-date" required>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+       <div class="form-group"><label for="male-present">👦 Varones Presentes:</label> <input type="number" id="male-present" name="male-present" min="0" value="0" required>
+       </div>
+       <div class="form-group"><label for="female-present">👧 Mujeres Presentes:</label> <input type="number" id="female-present" name="female-present" min="0" value="0" required>
+       </div>
+      </div>
+      <div class="form-group"><label for="total-absent">❌ Total de Ausentes:</label> <input type="number" id="total-absent" name="total-absent" min="0" value="0" required>
+      </div>
+      <div class="form-group"><label for="total-enrolled">👥 Total Matriculados en el Aula:</label> <input type="number" id="total-enrolled" name="total-enrolled" min="1" required>
+      </div>
+      <div class="form-group"><label for="classroom-notes">Observaciones (opcional):</label> <input type="text" id="classroom-notes" name="classroom-notes" placeholder="Notas adicionales sobre el aula...">
+      </div><button type="submit" class="btn btn-primary">💾 Guardar Asistencia del Aula</button>
+     </form>
+     <div class="attendance-list" id="classroom-list">
+      <h4>Registros de Aulas de Hoy</h4>
+      <div id="today-classroom-records"></div>
+     </div>
+    </div><!-- Tab de Reportes -->
+    <div id="reports-tab" class="tab-content">
+     <h3>Generar Reportes</h3>
+     <div class="success-message" id="report-success"></div>
+     <div class="error-message" id="report-error"></div>
+     <div class="loading" id="report-loading">
+      <div class="spinner"></div> Generando reporte...
+     </div>
+     <div class="form-group"><label for="report-start-date">Fecha de Inicio:</label> <input type="date" id="report-start-date">
+     </div>
+     <div class="form-group"><label for="report-end-date">Fecha de Fin:</label> <input type="date" id="report-end-date">
+     </div><button class="btn btn-success" onclick="generateExcelReport()"> 📊 Generar Reporte Excel </button>
+     <div id="report-summary" style="margin-top: 20px;"></div>
+    </div><!-- Tab de Estudiantes (Solo Director) -->
+    <div id="students-tab-content" class="tab-content">
+     <h3>Gestión de Estudiantes</h3>
+     <p>Funcionalidad disponible solo para directores</p>
+     <div id="all-records"></div>
+    </div>
+   </section>
+  </main>
+  <script>
+        // Variables globales
+        let currentUser = null;
+        let currentUserType = 'teacher';
+        let attendanceRecords = [];
+        let selectedStatus = null;
+
+        // Configuración por defecto
+        const defaultConfig = {
+            school_name: "Sistema de Asistencia Escolar",
+            director_name: "Director(a)",
+            academic_year: "2024-2025"
+        };
+
+        // Credenciales de prueba (en producción esto estaría en Firebase Auth)
+        const credentials = {
+            teacher: { username: 'docente', password: '123', name: 'Prof. María García' },
+            director: { username: 'director', password: 'admin', name: 'Dr. Juan Pérez' }
+        };
+
+        // Handler para el Data SDK
+        const dataHandler = {
+            onDataChanged(data) {
+                attendanceRecords = data;
+                updateAttendanceDisplay();
+                updateClassroomDisplay();
+                updateReportSummary();
+            }
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Inicializar Data SDK
+            const initResult = await window.dataSdk.init(dataHandler);
+            if (!initResult.isOk) {
+                console.error('Error inicializando Data SDK');
+                return;
+            }
+
+            // Inicializar Element SDK
+            if (window.elementSdk) {
+                await window.elementSdk.init({
+                    defaultConfig,
+                    onConfigChange: async (config) => {
+                        document.getElementById('school-name').textContent =
+                            config.school_name || defaultConfig.school_name;
+                        document.getElementById('academic-year').textContent =
+                            `Año Académico ${config.academic_year || defaultConfig.academic_year}`;
+                    },
+                    mapToCapabilities: (config) => ({
+                        recolorables: [],
+                        borderables: [],
+                        fontEditable: undefined,
+                        fontSizeable: undefined
+                    }),
+                    mapToEditPanelValues: (config) => new Map([
+                        ['school_name', config.school_name || defaultConfig.school_name],
+                        ['director_name', config.director_name || defaultConfig.director_name],
+                        ['academic_year', config.academic_year || defaultConfig.academic_year]
+                    ])
+                });
+            }
+
+            setupEventListeners();
+            setTodayDate();
+        });
+
+        function setupEventListeners() {
+            // Selector de tipo de usuario
+            document.querySelectorAll('.user-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.user-type-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentUserType = this.dataset.type;
+                });
+            });
+
+            // Form de login
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+
+            // Tabs de navegación
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    switchTab(tabName);
+                });
+            });
+
+     
