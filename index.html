@@ -1,15 +1,18 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="h-full">
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Asistencia Escolar - Firebase</title><!-- Firebase SDK -->
+  <title>Control de Asistencia - San Ignacio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
   <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, doc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        
-        // Configuración Firebase - San Ignacio
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-analytics.js";
+
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDjkCjj1iLMi3Z22o6cj1Xa-yYDoqjBm04",
             authDomain: "base-de-datos-san-ignacio.firebaseapp.com",
@@ -20,2042 +23,726 @@
             measurementId: "G-Z16V5DDNB8"
         };
 
-        // Inicializar Firebase
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // Hacer disponibles globalmente
-        window.firebaseAuth = auth;
+        const analytics = getAnalytics(app);
+
+        // Make Firebase available globally
         window.firebaseDb = db;
-        window.firebaseModules = {
-            signInWithEmailAndPassword,
-            createUserWithEmailAndPassword,
-            signOut,
-            onAuthStateChanged,
-            collection,
-            addDoc,
-            query,
-            where,
-            orderBy,
-            getDocs,
-            doc,
-            getDoc,
-            serverTimestamp
-        };
+        window.firebaseApp = app;
     </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
         body {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100%;
         }
-
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 10px;
-            min-height: 100%;
-        }
-
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            color: #2d3748;
-            margin: 0 0 10px 0;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .header p {
-            color: #4a5568;
-            margin: 0;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #2d3748;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #4299e1;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 10px;
-        }
-
-        .btn-primary {
-            background: #4299e1;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #3182ce;
-        }
-
-        .btn-success {
-            background: #48bb78;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #38a169;
-        }
-
-        .btn-warning {
-            background: #ed8936;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #dd6b20;
-        }
-
-        .btn-danger {
-            background: #f56565;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #e53e3e;
-        }
-
-        .btn-secondary {
-            background: #a0aec0;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #718096;
-        }
-
-
-
-        .nav-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 5px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px;
-            border-radius: 12px;
-        }
-
-        .nav-tab {
-            padding: 10px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .nav-tab.active {
-            background: rgba(255, 255, 255, 0.9);
-            color: #2d3748;
-        }
-
-        .tab-content {
-            display: none;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .student-form {
-            display: grid;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .attendance-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .attendance-btn {
-            padding: 8px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .attendance-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 20px;
-        }
-
-        .attendance-item {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .attendance-info h4 {
-            margin: 0 0 5px 0;
-            color: #2d3748;
-            font-size: 14px;
-        }
-
-        .attendance-info p {
-            margin: 0;
-            color: #4a5568;
-            font-size: 12px;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .status-presente {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .status-ausente {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-
-        .status-tardanza {
-            background: #feebc8;
-            color: #7b341e;
-        }
-
-        .status-justificado {
-            background: #bee3f8;
-            color: #2a4365;
-        }
-
-        .user-info {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            color: white;
-            text-align: center;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: #4a5568;
-        }
-
-        .spinner {
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #4299e1;
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .error-message {
-            background: #fed7d7;
-            color: #742a2a;
-            padding: 10px;
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 12px 24px;
             border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .success-message {
-            background: #c6f6d5;
-            color: #22543d;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .firebase-status {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
             color: white;
-            text-align: center;
-            font-size: 12px;
+            font-weight: 500;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
         }
-
-        .firebase-status.connected {
-            background: rgba(72, 187, 120, 0.2);
+        .toast.show {
+            transform: translateX(0);
         }
-
-        .firebase-status.error {
-            background: rgba(245, 101, 101, 0.2);
+        .toast.success {
+            background-color: #10b981;
         }
-
-        /* Estilos de Autenticación */
-        .auth-screen {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .auth-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .auth-tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
-            margin-bottom: 25px;
-            background: rgba(102, 126, 234, 0.1);
-            padding: 5px;
-            border-radius: 12px;
-        }
-
-        .auth-tab {
-            padding: 12px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: #4a5568;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .auth-tab.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .auth-form-container {
-            display: none;
-        }
-
-        .auth-form-container.active {
-            display: block;
-        }
-
-        .auth-form {
-            display: grid;
-            gap: 20px;
-        }
-
-        .auth-form h3 {
-            text-align: center;
-            color: #2d3748;
-            margin: 0 0 20px 0;
-            font-size: 24px;
-        }
-
-        .demo-accounts {
-            margin-top: 25px;
-            padding: 20px;
-            background: rgba(102, 126, 234, 0.05);
-            border-radius: 10px;
-            border: 2px dashed rgba(102, 126, 234, 0.2);
-        }
-
-        .demo-accounts h4 {
-            margin: 0 0 15px 0;
-            color: #4a5568;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .demo-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .logout-section {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logout-btn {
-            padding: 8px 15px;
-            background: rgba(245, 101, 101, 0.8);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .logout-btn:hover {
-            background: rgba(245, 101, 101, 1);
-        }
-
-        .role-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .role-admin {
-            background: #ffd700;
-            color: #744210;
-        }
-
-        .role-user {
-            background: #bee3f8;
-            color: #2a4365;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 5px;
-            }
-            
-            .header h1 {
-                font-size: 20px;
-            }
-            
-            .attendance-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 5px;
-            }
-            
-            .attendance-btn {
-                padding: 6px;
-                font-size: 11px;
-            }
-            
-            .nav-tabs {
-                grid-template-columns: 1fr;
-                gap: 2px;
-            }
-            
-            .nav-tab {
-                font-size: 12px;
-                padding: 8px;
-            }
+        .toast.error {
+            background-color: #ef4444;
         }
     </style>
   <style>@view-transition { navigation: auto; }</style>
   <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
-  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
-  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
  </head>
- <body>
-  <main class="container">
-   <header class="header">
-    <h1>Sistema de Asistencia Escolar - Firebase</h1>
-    <p>Año Académico 2024-2025</p>
-   </header><!-- Estado de Firebase -->
-   <div id="firebase-status" class="firebase-status">
-    🔄 Inicializando Firebase...
-   </div><!-- Panel de Diagnóstico Firebase (solo para desarrollo) -->
-   <div id="firebase-debug" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; color: white;">
-    <div>
-     <strong>🔧 Diagnóstico Firebase:</strong>
+ <body class="h-full bg-gradient-to-br from-blue-50 to-indigo-100 font-sans"><!-- Login Screen -->
+  <div id="loginScreen" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+   <div class="max-w-md w-full space-y-8">
+    <div class="text-center">
+     <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+      <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+      </svg>
+     </div>
+     <h2 id="schoolName" class="text-3xl font-bold text-gray-900">Colegio San Ignacio de Loyola</h2>
+     <p id="welcomeMessage" class="mt-2 text-lg text-gray-600">Sistema de Control de Asistencia</p>
     </div>
-    <div id="debug-info">
-     Cargando...
+    <div class="bg-white rounded-lg shadow-lg p-8">
+     <h3 id="loginTitle" class="text-xl font-semibold text-gray-900 mb-6 text-center">Iniciar Sesión</h3>
+     <form id="loginForm" class="space-y-6">
+      <div><label for="userType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Usuario</label> <select id="userType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"> <option value="admin">Administrador</option> <option value="docente">Docente</option> </select>
+      </div>
+      <div><label for="username" class="block text-sm font-medium text-gray-700 mb-2">Usuario</label> <input type="text" id="username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ingrese su usuario" required>
+      </div>
+      <div><label for="password" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label> <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ingrese su contraseña" required>
+      </div><button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 font-medium"> Ingresar </button>
+     </form>
     </div>
-    <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;"><button onclick="testFirebaseManually()" style="padding: 5px 10px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"> 🧪 Probar Conexión </button> <button onclick="testAttendanceSave()" style="padding: 5px 10px; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"> 💾 Probar Guardado </button>
-    </div>
-   </div><!-- Pantalla de Autenticación -->
-   <section id="auth-screen" class="auth-screen" style="display: none;">
-    <div class="auth-container">
-     <div class="auth-tabs">
-      <div class="auth-tab active" data-auth-tab="login">
-       🔐 Iniciar Sesión
-      </div>
-      <div class="auth-tab" data-auth-tab="register">
-       📝 Registrarse
-      </div>
-     </div><!-- Login Form -->
-     <div id="login-form-container" class="auth-form-container active">
-      <h3>Iniciar Sesión</h3>
-      <div class="error-message" id="login-error"></div>
-      <div class="success-message" id="login-success"></div>
-      <div class="loading" id="login-loading">
-       <div class="spinner"></div> Iniciando sesión...
-      </div>
-      <form id="login-form" class="auth-form">
-       <div class="form-group"><label for="login-username">👤 Usuario:</label> <input type="text" id="login-username" name="username" required placeholder="admin o user">
+   </div>
+  </div><!-- Main App Screen -->
+  <div id="mainApp" class="hidden min-h-full"><!-- Header -->
+   <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div class="flex justify-between items-center py-4">
+      <div class="flex items-center">
+       <div class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
        </div>
-       <div class="form-group"><label for="login-password">🔒 Contraseña:</label> <input type="password" id="login-password" name="password" required placeholder="Tu contraseña">
-       </div><button type="submit" class="btn btn-primary">🚀 Iniciar Sesión</button>
-      </form>
-      <div class="demo-accounts">
-       <h4>👥 Cuentas de Demostración:</h4>
-       <div class="demo-buttons"><button class="btn btn-secondary" onclick="loginDemo('admin')"> 👑 Admin Demo </button> <button class="btn btn-secondary" onclick="loginDemo('user')"> 👤 Usuario Demo </button>
+       <div>
+        <h1 class="text-xl font-semibold text-gray-900">Control de Asistencia</h1>
+        <p class="text-sm text-gray-500" id="currentDate"></p>
        </div>
       </div>
-     </div><!-- Register Form -->
-     <div id="register-form-container" class="auth-form-container">
-      <h3>Crear Cuenta Nueva</h3>
-      <div class="error-message" id="register-error"></div>
-      <div class="success-message" id="register-success"></div>
-      <div class="loading" id="register-loading">
-       <div class="spinner"></div> Creando cuenta...
+      <div class="flex items-center space-x-4"><span class="text-sm text-gray-600" id="userInfo"></span> <button id="logoutBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition duration-200 text-sm font-medium"> Cerrar Sesión </button>
       </div>
-      <form id="register-form" class="auth-form">
-       <div class="form-group"><label for="register-name">👤 Nombre Completo:</label> <input type="text" id="register-name" name="name" required placeholder="Ej: María García López">
-       </div>
-       <div class="form-group"><label for="register-email">📧 Correo Electrónico:</label> <input type="email" id="register-email" name="email" required placeholder="usuario@sanignacio.edu">
-       </div>
-       <div class="form-group"><label for="register-password">🔒 Contraseña:</label> <input type="password" id="register-password" name="password" required placeholder="Mínimo 6 caracteres">
-       </div>
-       <div class="form-group"><label for="register-role">🎭 Rol de Usuario:</label> <select id="register-role" name="role" required> <option value="">Seleccionar rol</option> <option value="user">👤 Usuario (Docente)</option> <option value="admin">👑 Administrador (Director)</option> </select>
-       </div>
-       <div class="form-group"><label for="register-department">🏫 Departamento/Área:</label> <select id="register-department" name="department" required> <option value="">Seleccionar departamento</option> <option value="primaria">📚 Educación Primaria</option> <option value="secundaria">🎓 Educación Secundaria</option> <option value="matematicas">🔢 Matemáticas</option> <option value="ciencias">🔬 Ciencias Naturales</option> <option value="lenguaje">📖 Lenguaje y Literatura</option> <option value="sociales">🌍 Ciencias Sociales</option> <option value="educacion_fisica">⚽ Educación Física</option> <option value="artes">🎨 Artes</option> <option value="administracion">🏢 Administración</option> <option value="direccion">👑 Dirección</option> </select>
-       </div><button type="submit" class="btn btn-success">✨ Crear Cuenta</button>
-      </form>
      </div>
     </div>
-   </section><!-- Aplicación Principal -->
-   <section id="main-app" class="main-app" style="display: none;">
-    <div class="logout-section">
-     <div style="color: white;">
-      <div id="user-welcome" style="font-weight: 600; margin-bottom: 2px;">
-       Bienvenido, Usuario
+   </header><!-- Main Content -->
+   <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8"><!-- Quick Registration Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+     <h2 class="text-lg font-semibold text-gray-900 mb-4">Registro Rápido de Asistencia</h2>
+     <form id="attendanceForm" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div><label for="grado" class="block text-sm font-medium text-gray-700 mb-1">Grado</label> <select id="grado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required> <option value="">Seleccionar</option> <option value="7°">7° Grado</option> <option value="8°">8° Grado</option> <option value="9°">9° Grado</option> <option value="10°">10° Grado</option> <option value="11°">11° Grado</option> </select>
       </div>
-      <div style="font-size: 12px; opacity: 0.8;"><span id="user-email">email@sanignacio.edu</span> • <span class="role-badge" id="user-role-badge">Usuario</span>
+      <div><label for="seccion" class="block text-sm font-medium text-gray-700 mb-1">Sección</label> <select id="seccion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required> <option value="">Seleccionar</option> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> </select>
       </div>
-     </div><button class="logout-btn" onclick="handleLogout()">🚪 Cerrar Sesión</button>
-    </div>
-    <div class="user-info">
-     <h3 id="user-department">Departamento: No asignado</h3>
-     <p id="user-school">Institución: Colegio San Ignacio</p>
-    </div>
-    <nav class="nav-tabs">
-     <div class="nav-tab active" data-tab="attendance">
-      📝 Individual
-     </div>
-     <div class="nav-tab" data-tab="classroom">
-      🏫 Por Aula
-     </div>
-     <div class="nav-tab" data-tab="reports">
-      📊 Reportes
-     </div>
-     <div class="nav-tab" data-tab="students" id="students-tab" style="display: none;">
-      👥 Estudiantes
-     </div>
-    </nav><!-- Tab de Asistencia Individual -->
-    <div id="attendance-tab" class="tab-content active">
-     <h3>Registro de Asistencia Individual</h3>
-     <div class="success-message" id="attendance-success"></div>
-     <div class="error-message" id="attendance-error"></div>
-     <div class="loading" id="attendance-loading">
-      <div class="spinner"></div> Guardando en Firebase...
-     </div>
-     <form id="attendance-form" class="student-form">
-      <div class="form-group"><label for="student-name">Nombre del Estudiante:</label> <input type="text" id="student-name" name="student-name" required>
+      <div><label for="totalVarones" class="block text-sm font-medium text-gray-700 mb-1">Total Varones</label> <input type="number" id="totalVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div class="form-group"><label for="student-id">ID del Estudiante:</label> <input type="text" id="student-id" name="student-id" required>
+      <div><label for="totalMujeres" class="block text-sm font-medium text-gray-700 mb-1">Total Mujeres</label> <input type="number" id="totalMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div class="form-group"><label for="attendance-date">Fecha:</label> <input type="date" id="attendance-date" name="attendance-date" required>
+      <div><label for="capacidadAula" class="block text-sm font-medium text-gray-700 mb-1">Capacidad del Aula</label> <input type="number" id="capacidadAula" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div class="form-group"><label for="notes">Notas (opcional):</label> <input type="text" id="notes" name="notes" placeholder="Observaciones adicionales...">
-      </div>
-      <div class="attendance-grid"><button type="button" class="attendance-btn btn-success" data-status="presente"> ✅ Presente </button> <button type="button" class="attendance-btn btn-danger" data-status="ausente"> ❌ Ausente </button> <button type="button" class="attendance-btn btn-warning" data-status="tardanza"> ⏰ Tardanza </button> <button type="button" class="attendance-btn btn-secondary" data-status="justificado"> 📋 Justificado </button>
+      <div class="flex items-end"><button type="submit" id="submitBtn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 font-medium flex items-center justify-center"> <span id="submitText">Registrar</span>
+        <div id="submitSpinner" class="loading-spinner ml-2 hidden"></div></button>
       </div>
      </form>
-     <div class="attendance-list" id="attendance-list">
-      <h4>Registros de Hoy (Firebase)</h4>
-      <div id="today-records"></div>
-     </div>
-    </div><!-- Tab de Asistencia por Aula -->
-    <div id="classroom-tab" class="tab-content">
-     <h3>Asistencia por Aula</h3>
-     <div class="success-message" id="classroom-success"></div>
-     <div class="error-message" id="classroom-error"></div>
-     <div class="loading" id="classroom-loading">
-      <div class="spinner"></div> Guardando aula en Firebase...
-     </div>
-     <form id="classroom-form" class="student-form">
-      <div class="form-group"><label for="classroom-grade">Grado:</label> <select id="classroom-grade" name="classroom-grade" required> <option value="">Seleccionar grado</option> <option value="7mo">7mo Grado</option> <option value="8vo">8vo Grado</option> <option value="9no">9no Grado</option> <option value="10mo">10mo Grado</option> <option value="11vo">11vo Grado</option> </select>
-      </div>
-      <div class="form-group"><label for="classroom-section">Sección:</label> <select id="classroom-section" name="classroom-section" required> <option value="">Seleccionar sección</option> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> <option value="D">Sección D</option> </select>
-      </div>
-      <div class="form-group"><label for="classroom-date">Fecha:</label> <input type="date" id="classroom-date" name="classroom-date" required>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
-       <div class="form-group"><label for="male-present">👦 Varones Presentes:</label> <input type="number" id="male-present" name="male-present" min="0" value="0" required>
+    </div><!-- Filters and Actions -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+      <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+       <div><label for="filterGrado" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Grado</label> <select id="filterGrado" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Todos los grados</option> <option value="7°">7° Grado</option> <option value="8°">8° Grado</option> <option value="9°">9° Grado</option> <option value="10°">10° Grado</option> <option value="11°">11° Grado</option> </select>
        </div>
-       <div class="form-group"><label for="female-present">👧 Mujeres Presentes:</label> <input type="number" id="female-present" name="female-present" min="0" value="0" required>
+       <div><label for="filterSeccion" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Sección</label> <select id="filterSeccion" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Todas las secciones</option> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> </select>
        </div>
       </div>
-      <div class="form-group"><label for="total-absent">❌ Total de Ausentes:</label> <input type="number" id="total-absent" name="total-absent" min="0" value="0" required>
+      <div class="flex space-x-2"><button id="downloadPDF" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition duration-200 text-sm font-medium flex items-center">
+        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg> PDF </button> <button id="downloadCSV" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200 text-sm font-medium flex items-center">
+        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg> CSV </button>
       </div>
-      <div class="form-group"><label for="total-enrolled">👥 Total Matriculados en el Aula:</label> <input type="number" id="total-enrolled" name="total-enrolled" min="1" required>
-      </div>
-      <div class="form-group"><label for="classroom-notes">Observaciones (opcional):</label> <input type="text" id="classroom-notes" name="classroom-notes" placeholder="Notas adicionales sobre el aula...">
-      </div><button type="submit" class="btn btn-primary">💾 Guardar en Firebase</button>
-     </form>
-     <div class="attendance-list" id="classroom-list">
-      <h4>Registros de Aulas de Hoy (Firebase)</h4>
-      <div id="today-classroom-records"></div>
      </div>
-    </div><!-- Tab de Reportes -->
-    <div id="reports-tab" class="tab-content">
-     <h3>Generar Reportes desde Firebase</h3>
-     <div class="success-message" id="report-success"></div>
-     <div class="error-message" id="report-error"></div>
-     <div class="loading" id="report-loading">
-      <div class="spinner"></div> Consultando Firebase...
+    </div><!-- Attendance Records Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+     <div class="px-6 py-4 border-b border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900">Registros de Asistencia del Día</h3>
+      <p class="text-sm text-gray-600 mt-1">Total de registros: <span id="recordCount">0</span></p>
      </div>
-     <div class="form-group"><label for="report-start-date">Fecha de Inicio:</label> <input type="date" id="report-start-date">
+     <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+       <thead class="bg-gray-50">
+        <tr>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grado</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sección</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Varones</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mujeres</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidad</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+        </tr>
+       </thead>
+       <tbody id="attendanceTableBody" class="bg-white divide-y divide-gray-200"><!-- Records will be populated here -->
+       </tbody>
+      </table>
      </div>
-     <div class="form-group"><label for="report-end-date">Fecha de Fin:</label> <input type="date" id="report-end-date">
-     </div><button class="btn btn-success" onclick="generateFirebaseReport()"> 📊 Generar Reporte desde Firebase </button>
-     <div id="report-summary" style="margin-top: 20px;"></div>
-    </div><!-- Tab de Estudiantes (Solo Director) -->
-    <div id="students-tab-content" class="tab-content">
-     <h3>Gestión de Estudiantes (Firebase)</h3>
-     <p>Funcionalidad disponible solo para directores</p>
-     <div id="all-records"></div>
+     <div id="emptyState" class="hidden text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No hay registros</h3>
+      <p class="mt-1 text-sm text-gray-500">Comience registrando la asistencia de una clase.</p>
+     </div>
     </div>
-   </section>
-  </main>
+   </main>
+  </div><!-- Edit Modal -->
+  <div id="editModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+     <h3 class="text-lg font-medium text-gray-900 mb-4">Editar Registro</h3>
+     <form id="editForm" class="space-y-4">
+      <div><label for="editGrado" class="block text-sm font-medium text-gray-700 mb-1">Grado</label> <select id="editGrado" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required> <option value="7°">7° Grado</option> <option value="8°">8° Grado</option> <option value="9°">9° Grado</option> <option value="10°">10° Grado</option> <option value="11°">11° Grado</option> </select>
+      </div>
+      <div><label for="editSeccion" class="block text-sm font-medium text-gray-700 mb-1">Sección</label> <select id="editSeccion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> </select>
+      </div>
+      <div><label for="editVarones" class="block text-sm font-medium text-gray-700 mb-1">Total Varones</label> <input type="number" id="editVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      </div>
+      <div><label for="editMujeres" class="block text-sm font-medium text-gray-700 mb-1">Total Mujeres</label> <input type="number" id="editMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      </div>
+      <div><label for="editCapacidad" class="block text-sm font-medium text-gray-700 mb-1">Capacidad del Aula</label> <input type="number" id="editCapacidad" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      </div>
+      <div class="flex justify-end space-x-3 pt-4"><button type="button" id="cancelEdit" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition duration-200"> Cancelar </button> <button type="submit" id="saveEdit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center"> <span id="saveEditText">Guardar</span>
+        <div id="saveEditSpinner" class="loading-spinner ml-2 hidden"></div></button>
+      </div>
+     </form>
+    </div>
+   </div>
+  </div><!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+   <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3 text-center">
+     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+      <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+      </svg>
+     </div>
+     <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmar Eliminación</h3>
+     <p class="text-sm text-gray-500 mb-6">¿Está seguro que desea eliminar este registro? Esta acción no se puede deshacer.</p>
+     <div class="flex justify-center space-x-3"><button id="cancelDelete" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition duration-200"> Cancelar </button> <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200 flex items-center"> <span id="deleteText">Eliminar</span>
+       <div id="deleteSpinner" class="loading-spinner ml-2 hidden"></div></button>
+     </div>
+    </div>
+   </div>
+  </div>
   <script>
-        // Variables globales
+        // Global variables
         let currentUser = null;
-        let selectedStatus = null;
         let attendanceRecords = [];
-        let classroomRecords = [];
+        let editingRecord = null;
+        let deletingRecord = null;
+        let recordCount = 0;
 
-        // Servicios Firebase
-        class FirebaseUserService {
-            constructor() {
-                this.db = window.firebaseDb;
-                this.modules = window.firebaseModules;
-            }
+        // Default configuration
+        const defaultConfig = {
+            school_name: "Colegio San Ignacio de Loyola",
+            welcome_message: "Sistema de Control de Asistencia",
+            login_title: "Iniciar Sesión"
+        };
 
-            async createUserProfile(uid, userData) {
-                try {
-                    console.log('🔄 Creando perfil de usuario:', userData);
-                    
-                    const userProfile = {
-                        uid: uid,
-                        name: userData.name,
-                        email: userData.email,
-                        role: userData.role,
-                        department: userData.department,
-                        school_id: 'colegio-san-ignacio-123',
-                        school_name: 'Colegio San Ignacio',
-                        created_at: new Date().toISOString(),
-                        timestamp: this.modules.serverTimestamp()
-                    };
-
-                    await this.modules.addDoc(
-                        this.modules.collection(this.db, 'users'), 
-                        userProfile
-                    );
-                    
-                    console.log('✅ Perfil de usuario creado exitosamente');
-                    return { success: true, profile: userProfile };
-                } catch (error) {
-                    console.error('❌ Error creating user profile:', error);
-                    return { success: false, error: error.message };
-                }
-            }
-
-            async getUserProfile(uid) {
-                try {
-                    const q = this.modules.query(
-                        this.modules.collection(this.db, 'users'),
-                        this.modules.where('uid', '==', uid)
-                    );
-                    
-                    const querySnapshot = await this.modules.getDocs(q);
-                    
-                    if (!querySnapshot.empty) {
-                        const userDoc = querySnapshot.docs[0];
-                        return { success: true, profile: { id: userDoc.id, ...userDoc.data() } };
-                    } else {
-                        return { success: false, error: 'Perfil de usuario no encontrado' };
-                    }
-                } catch (error) {
-                    console.error('❌ Error getting user profile:', error);
-                    return { success: false, error: error.message };
-                }
-            }
-        }
-
-        class FirebaseAttendanceService {
-            constructor() {
-                this.db = window.firebaseDb;
-                this.modules = window.firebaseModules;
-            }
-
-            async createIndividualAttendance(attendanceData) {
-                try {
-                    console.log('🔄 Intentando guardar en Firebase:', attendanceData);
-                    
-                    // Verificaciones detalladas
-                    if (!this.db) {
-                        console.error('❌ this.db no está disponible');
-                        throw new Error('Firebase Database no está inicializado');
-                    }
-                    
-                    if (!this.modules) {
-                        console.error('❌ this.modules no está disponible');
-                        throw new Error('Firebase Modules no están inicializados');
-                    }
-
-                    if (!this.modules.addDoc) {
-                        console.error('❌ addDoc no está disponible en modules');
-                        throw new Error('Función addDoc no está disponible');
-                    }
-
-                    if (!this.modules.collection) {
-                        console.error('❌ collection no está disponible en modules');
-                        throw new Error('Función collection no está disponible');
-                    }
-
-                    if (!this.modules.serverTimestamp) {
-                        console.error('❌ serverTimestamp no está disponible en modules');
-                        throw new Error('Función serverTimestamp no está disponible');
-                    }
-
-                    const docData = {
-                        ...attendanceData,
-                        timestamp: this.modules.serverTimestamp(),
-                        created_at: new Date().toISOString(),
-                        saved_from: 'web_app'
-                    };
-
-                    console.log('📝 Datos finales a guardar:', docData);
-                    console.log('🏗️ Usando colección: attendance_individual');
-
-                    const collectionRef = this.modules.collection(this.db, 'attendance_individual');
-                    console.log('📂 Referencia de colección creada:', collectionRef);
-
-                    const docRef = await this.modules.addDoc(collectionRef, docData);
-                    
-                    console.log('✅ Documento guardado exitosamente con ID:', docRef.id);
-                    return { success: true, id: docRef.id };
-                } catch (error) {
-                    console.error('❌ Error completo creating individual attendance:', error);
-                    console.error('❌ Error code:', error.code);
-                    console.error('❌ Error message:', error.message);
-                    console.error('❌ Error stack:', error.stack);
-                    
-                    // Diagnóstico adicional
-                    console.log('🔍 Diagnóstico del error:');
-                    console.log('  - Firebase DB:', !!this.db);
-                    console.log('  - Firebase Modules:', !!this.modules);
-                    console.log('  - addDoc function:', !!this.modules?.addDoc);
-                    console.log('  - collection function:', !!this.modules?.collection);
-                    console.log('  - serverTimestamp function:', !!this.modules?.serverTimestamp);
-                    
-                    return { success: false, error: `${error.code || 'UNKNOWN'}: ${error.message}` };
-                }
-            }
-
-            async createClassroomAttendance(classroomData) {
-                try {
-                    console.log('🔄 Intentando guardar aula en Firebase:', classroomData);
-                    
-                    if (!this.db || !this.modules) {
-                        throw new Error('Firebase no está inicializado correctamente');
-                    }
-
-                    const docData = {
-                        ...classroomData,
-                        timestamp: this.modules.serverTimestamp(),
-                        created_at: new Date().toISOString()
-                    };
-
-                    console.log('📝 Datos de aula a guardar:', docData);
-
-                    const docRef = await this.modules.addDoc(
-                        this.modules.collection(this.db, 'attendance_classroom'), 
-                        docData
-                    );
-                    
-                    console.log('✅ Aula guardada con ID:', docRef.id);
-                    return { success: true, id: docRef.id };
-                } catch (error) {
-                    console.error('❌ Error creating classroom attendance:', error);
-                    console.error('Error details:', error.code, error.message);
-                    return { success: false, error: `${error.code || 'UNKNOWN'}: ${error.message}` };
-                }
-            }
-
-            async getAttendanceByDate(schoolId, startDate, endDate, type = 'individual') {
-                try {
-                    const collectionName = type === 'individual' ? 'attendance_individual' : 'attendance_classroom';
-                    const q = this.modules.query(
-                        this.modules.collection(this.db, collectionName),
-                        this.modules.where('school_id', '==', schoolId),
-                        this.modules.where('date', '>=', startDate),
-                        this.modules.where('date', '<=', endDate),
-                        this.modules.orderBy('date', 'desc')
-                    );
-                    
-                    const querySnapshot = await this.modules.getDocs(q);
-                    const records = [];
-                    querySnapshot.forEach((doc) => {
-                        records.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    return { success: true, data: records };
-                } catch (error) {
-                    console.error('Error getting attendance:', error);
-                    return { success: false, error: error.message };
-                }
-            }
-
-            async getTodayAttendance(schoolId, type = 'individual') {
-                const today = new Date().toISOString().split('T')[0];
-                return this.getAttendanceByDate(schoolId, today, today, type);
-            }
-        }
-
-        class FirebaseAuthService {
-            constructor() {
-                this.auth = window.firebaseAuth;
-                this.db = window.firebaseDb;
-                this.modules = window.firebaseModules;
-            }
-
-            async register(email, password, userData) {
-                try {
-                    console.log('🔄 Registrando usuario:', email);
-                    
-                    // Crear usuario en Firebase Auth
-                    const userCredential = await this.modules.createUserWithEmailAndPassword(this.auth, email, password);
-                    const user = userCredential.user;
-                    
-                    console.log('✅ Usuario creado en Auth:', user.uid);
-                    
-                    // Crear perfil en Firestore
-                    const userService = new FirebaseUserService();
-                    const profileResult = await userService.createUserProfile(user.uid, {
-                        ...userData,
-                        email: user.email
-                    });
-                    
-                    if (!profileResult.success) {
-                        throw new Error('Error creando perfil: ' + profileResult.error);
-                    }
-                    
-                    return { 
-                        success: true, 
-                        user: { 
-                            uid: user.uid, 
-                            email: user.email, 
-                            ...profileResult.profile 
-                        } 
-                    };
-                } catch (error) {
-                    console.error('❌ Register error:', error);
-                    return { success: false, error: this.getErrorMessage(error.code) || error.message };
-                }
-            }
-
-            async login(email, password) {
-                try {
-                    console.log('🔄 Iniciando sesión:', email);
-                    
-                    const userCredential = await this.modules.signInWithEmailAndPassword(this.auth, email, password);
-                    const user = userCredential.user;
-                    
-                    console.log('✅ Usuario autenticado:', user.uid);
-                    
-                    // Obtener perfil del usuario
-                    const userService = new FirebaseUserService();
-                    const profileResult = await userService.getUserProfile(user.uid);
-                    
-                    if (!profileResult.success) {
-                        throw new Error('Perfil de usuario no encontrado');
-                    }
-                    
-                    return { 
-                        success: true, 
-                        user: { 
-                            uid: user.uid, 
-                            email: user.email, 
-                            ...profileResult.profile 
-                        } 
-                    };
-                } catch (error) {
-                    console.error('❌ Login error:', error);
-                    return { success: false, error: this.getErrorMessage(error.code) || error.message };
-                }
-            }
-
-            async logout() {
-                try {
-                    await this.modules.signOut(this.auth);
-                    return { success: true };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            }
-
-            onAuthChange(callback) {
-                return this.modules.onAuthStateChanged(this.auth, async (user) => {
-                    if (user) {
-                        try {
-                            const userService = new FirebaseUserService();
-                            const profileResult = await userService.getUserProfile(user.uid);
-                            
-                            if (profileResult.success) {
-                                callback({ 
-                                    uid: user.uid, 
-                                    email: user.email, 
-                                    ...profileResult.profile 
-                                });
-                            } else {
-                                callback(null);
-                            }
-                        } catch (error) {
-                            console.error('Error getting user data:', error);
-                            callback(null);
-                        }
-                    } else {
-                        callback(null);
-                    }
+        // Initialize app
+        async function initializeApp() {
+            if (window.elementSdk) {
+                await window.elementSdk.init({
+                    defaultConfig,
+                    onConfigChange: async (config) => {
+                        document.getElementById('schoolName').textContent = config.school_name || defaultConfig.school_name;
+                        document.getElementById('welcomeMessage').textContent = config.welcome_message || defaultConfig.welcome_message;
+                        document.getElementById('loginTitle').textContent = config.login_title || defaultConfig.login_title;
+                    },
+                    mapToCapabilities: (config) => ({
+                        recolorables: [],
+                        borderables: [],
+                        fontEditable: undefined,
+                        fontSizeable: undefined
+                    }),
+                    mapToEditPanelValues: (config) => new Map([
+                        ["school_name", config.school_name || defaultConfig.school_name],
+                        ["welcome_message", config.welcome_message || defaultConfig.welcome_message],
+                        ["login_title", config.login_title || defaultConfig.login_title]
+                    ])
                 });
             }
 
-            getErrorMessage(errorCode) {
-                const errorMessages = {
-                    'auth/email-already-in-use': 'Este correo electrónico ya está registrado',
-                    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
-                    'auth/invalid-email': 'Correo electrónico inválido',
-                    'auth/user-not-found': 'Usuario no encontrado',
-                    'auth/wrong-password': 'Contraseña incorrecta',
-                    'auth/too-many-requests': 'Demasiados intentos fallidos. Intenta más tarde',
-                    'auth/network-request-failed': 'Error de conexión. Verifica tu internet'
-                };
-                return errorMessages[errorCode] || 'Error de autenticación';
-            }
+            setupEventListeners();
+            updateCurrentDate();
+            await loadAttendanceRecords();
         }
 
-        // Instancias de servicios
-        let attendanceService;
-        let authService;
-        let userService;
-
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 DOM cargado, inicializando aplicación...');
-            
-            // Mostrar pantalla de auth por defecto
-            showAuthScreen();
-            
-            // Inicializar app
-            initializeApp().catch(error => {
-                console.error('❌ Error fatal en inicialización:', error);
-                updateFirebaseStatus('error', '❌ Error fatal: ' + error.message);
-                // Asegurar que se muestre la pantalla de auth
-                showAuthScreen();
-            });
-        });
-
-        async function initializeApp() {
+        // Firebase functions
+        async function loadAttendanceRecords() {
             try {
-                console.log('🚀 Iniciando aplicación...');
+                const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+                const q = query(collection(window.firebaseDb, "attendance"), orderBy("timestamp", "desc"));
+                const querySnapshot = await getDocs(q);
                 
-                // Esperar a que Firebase esté disponible (solo para datos)
-                await waitForFirebase();
-                console.log('✅ Firebase disponible para datos');
-
-                // Inicializar solo servicios necesarios
-                attendanceService = new FirebaseAttendanceService();
-                userService = new FirebaseUserService();
-                console.log('✅ Servicios de datos inicializados');
-
-                setupEventListeners();
-                setTodayDate();
-
-                // Mostrar pantalla de login (sin Firebase Auth)
-                showAuthScreen();
-                updateFirebaseStatus('connected', '✅ Sistema listo - Login local activo');
-
-                // Probar conexión básica a Firebase (solo para datos)
-                try {
-                    await testFirebaseConnection();
-                    console.log('✅ Conexión a Firebase exitosa para datos');
-                    updateFirebaseStatus('connected', '✅ Firebase conectado para datos - Login local');
-                } catch (error) {
-                    console.warn('⚠️ Conexión inicial falló, pero continuando:', error);
-                    updateFirebaseStatus('connected', '⚠️ Firebase para datos - Login local activo');
-                }
-
-                console.log('🎉 Aplicación inicializada correctamente con login local');
-
+                attendanceRecords = [];
+                querySnapshot.forEach((doc) => {
+                    attendanceRecords.push({ id: doc.id, ...doc.data() });
+                });
+                
+                recordCount = attendanceRecords.length;
+                renderAttendanceTable();
+                updateRecordCount();
             } catch (error) {
-                console.error('❌ Error crítico inicializando aplicación:', error);
-                updateFirebaseStatus('error', '❌ Error crítico: ' + error.message);
-                // Asegurar que se muestre la pantalla de auth
-                showAuthScreen();
+                console.error("Error loading records:", error);
+                showToast('Error al cargar los registros', 'error');
             }
         }
 
-        function waitForFirebase() {
-            return new Promise((resolve, reject) => {
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkFirebase = () => {
-                    attempts++;
-                    if (window.firebaseDb && window.firebaseModules) {
-                        resolve();
-                    } else if (attempts >= maxAttempts) {
-                        reject(new Error('Firebase no se cargó correctamente'));
-                    } else {
-                        setTimeout(checkFirebase, 100);
-                    }
-                };
-                
-                checkFirebase();
-            });
-        }
-
-        async function testFirebaseConnection() {
+        async function saveAttendanceRecord(record) {
             try {
-                console.log('🔄 Probando conexión a Firebase...');
-                console.log('📊 Firebase DB disponible:', !!window.firebaseDb);
-                console.log('🛠️ Firebase Modules disponible:', !!window.firebaseModules);
-                
-                if (!window.firebaseDb || !window.firebaseModules) {
-                    throw new Error('Firebase SDK no está completamente cargado');
-                }
-
-                // Intentar crear una colección de prueba
-                const testDoc = {
-                    test: true,
-                    timestamp: new Date().toISOString(),
-                    school_id: 'test-connection',
-                    created_by: 'system_test'
-                };
-                
-                console.log('📝 Creando documento de prueba:', testDoc);
-                
-                const docRef = await window.firebaseModules.addDoc(
-                    window.firebaseModules.collection(window.firebaseDb, 'connection_test'), 
-                    testDoc
-                );
-                
-                console.log('✅ Conexión a Firebase exitosa. Test doc ID:', docRef.id);
+                const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+                await addDoc(collection(window.firebaseDb, "attendance"), record);
+                await loadAttendanceRecords();
                 return true;
             } catch (error) {
-                console.error('❌ Error de conexión a Firebase:', error);
-                console.error('❌ Error code:', error.code);
-                console.error('❌ Error message:', error.message);
-                throw error;
+                console.error("Error saving record:", error);
+                return false;
             }
         }
 
-        function updateFirebaseStatus(status, message) {
-            const statusElement = document.getElementById('firebase-status');
-            statusElement.className = `firebase-status ${status}`;
-            statusElement.textContent = message;
+        async function updateAttendanceRecord(recordId, updatedData) {
+            try {
+                const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+                const recordRef = doc(window.firebaseDb, "attendance", recordId);
+                await updateDoc(recordRef, updatedData);
+                await loadAttendanceRecords();
+                return true;
+            } catch (error) {
+                console.error("Error updating record:", error);
+                return false;
+            }
         }
 
+        async function deleteAttendanceRecord(recordId) {
+            try {
+                const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+                await deleteDoc(doc(window.firebaseDb, "attendance", recordId));
+                await loadAttendanceRecords();
+                return true;
+            } catch (error) {
+                console.error("Error deleting record:", error);
+                return false;
+            }
+        }
+
+        // Setup event listeners
         function setupEventListeners() {
-            // Tabs de autenticación
-            document.querySelectorAll('.auth-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabName = this.dataset.authTab;
-                    switchAuthTab(tabName);
-                });
-            });
-
-            // Forms de autenticación
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('register-form').addEventListener('submit', handleRegister);
-
-            // Tabs de navegación
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabName = this.dataset.tab;
-                    switchTab(tabName);
-                });
-            });
-
-            // Botones de asistencia
-            document.querySelectorAll('.attendance-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    selectAttendanceStatus(this.dataset.status);
-                });
-            });
-
-            // Forms
-            document.getElementById('attendance-form').addEventListener('submit', handleFirebaseAttendanceSubmit);
-            document.getElementById('classroom-form').addEventListener('submit', handleFirebaseClassroomSubmit);
-
-            // Reportes
-            document.getElementById('report-start-date').addEventListener('change', updateFirebaseReportSummary);
-            document.getElementById('report-end-date').addEventListener('change', updateFirebaseReportSummary);
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Attendance form
+            document.getElementById('attendanceForm').addEventListener('submit', handleAttendanceSubmit);
+            
+            // Filters
+            document.getElementById('filterGrado').addEventListener('change', renderAttendanceTable);
+            document.getElementById('filterSeccion').addEventListener('change', renderAttendanceTable);
+            
+            // Download buttons
+            document.getElementById('downloadPDF').addEventListener('click', downloadPDF);
+            document.getElementById('downloadCSV').addEventListener('click', downloadCSV);
+            
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            
+            // Edit modal
+            document.getElementById('editForm').addEventListener('submit', handleEditSubmit);
+            document.getElementById('cancelEdit').addEventListener('click', closeEditModal);
+            
+            // Delete modal
+            document.getElementById('confirmDelete').addEventListener('click', handleDeleteConfirm);
+            document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
         }
 
-        function showAuthScreen() {
-            document.getElementById('auth-screen').style.display = 'block';
-            document.getElementById('main-app').style.display = 'none';
+        // Handle login
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const userType = document.getElementById('userType').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Simple authentication (in real app, this would be server-side)
+            if ((userType === 'admin' && username === 'admin' && password === 'admin123') ||
+                (userType === 'docente' && username === 'docente' && password === 'docente123')) {
+                
+                currentUser = {
+                    type: userType,
+                    username: username
+                };
+                
+                showMainApp();
+                showToast('Inicio de sesión exitoso', 'success');
+            } else {
+                showToast('Usuario o contraseña incorrectos', 'error');
+            }
         }
 
+        // Show main app
         function showMainApp() {
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('main-app').style.display = 'block';
-        }
-
-        function switchAuthTab(tabName) {
-            // Actualizar tabs activos
-            document.querySelectorAll('.auth-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-auth-tab="${tabName}"]`).classList.add('active');
-
-            // Mostrar contenido correspondiente
-            document.querySelectorAll('.auth-form-container').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(`${tabName}-form-container`).classList.add('active');
-        }
-
-        function updateUserInterface() {
-            if (!currentUser) return;
-
-            // Actualizar información del usuario
-            document.getElementById('user-welcome').textContent = `Bienvenido, ${currentUser.name}`;
-            document.getElementById('user-email').textContent = currentUser.email;
-            document.getElementById('user-department').textContent = `Departamento: ${getDepartmentName(currentUser.department)}`;
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
             
-            // Actualizar badge de rol
-            const roleBadge = document.getElementById('user-role-badge');
-            roleBadge.textContent = currentUser.role === 'admin' ? '👑 Administrador' : '👤 Usuario';
-            roleBadge.className = `role-badge ${currentUser.role === 'admin' ? 'role-admin' : 'role-user'}`;
-
-            // Mostrar/ocultar tabs según el rol
-            const studentsTab = document.getElementById('students-tab');
-            if (currentUser.role === 'admin') {
-                studentsTab.style.display = 'block';
-            } else {
-                studentsTab.style.display = 'none';
-            }
+            const userInfo = document.getElementById('userInfo');
+            userInfo.textContent = `${currentUser.type === 'admin' ? 'Administrador' : 'Docente'}: ${currentUser.username}`;
         }
 
-        function getDepartmentName(department) {
-            const departments = {
-                'primaria': '📚 Educación Primaria',
-                'secundaria': '🎓 Educación Secundaria',
-                'matematicas': '🔢 Matemáticas',
-                'ciencias': '🔬 Ciencias Naturales',
-                'lenguaje': '📖 Lenguaje y Literatura',
-                'sociales': '🌍 Ciencias Sociales',
-                'educacion_fisica': '⚽ Educación Física',
-                'artes': '🎨 Artes',
-                'administracion': '🏢 Administración',
-                'direccion': '👑 Dirección'
-            };
-            return departments[department] || department;
-        }
-
-        async function handleLogin(e) {
-            e.preventDefault();
-
-            const formData = new FormData(e.target);
-            const username = formData.get('username');
-            const password = formData.get('password');
-
-            console.log('🔄 Intentando login local con usuario:', username);
-
-            if (!username || !password) {
-                showError('login-error', 'Por favor completa todos los campos');
-                return;
-            }
-
-            // Limpiar errores previos
-            document.getElementById('login-error').style.display = 'none';
-            showLoading('login-loading', true);
-
-            // Simular tiempo de carga
-            setTimeout(() => {
-                // Credenciales locales (sin Firebase)
-                const validCredentials = {
-                    'admin': {
-                        password: 'admin123',
-                        user: {
-                            uid: 'local-admin-001',
-                            name: 'Administrador Local',
-                            email: 'admin@sanignacio.edu',
-                            role: 'admin',
-                            department: 'direccion',
-                            school_id: 'colegio-san-ignacio-123',
-                            school_name: 'Colegio San Ignacio'
-                        }
-                    },
-                    'user': {
-                        password: 'user123',
-                        user: {
-                            uid: 'local-user-001',
-                            name: 'Usuario Local',
-                            email: 'user@sanignacio.edu',
-                            role: 'user',
-                            department: 'primaria',
-                            school_id: 'colegio-san-ignacio-123',
-                            school_name: 'Colegio San Ignacio'
-                        }
-                    }
-                };
-
-                showLoading('login-loading', false);
-
-                if (validCredentials[username] && validCredentials[username].password === password) {
-                    console.log('✅ Login local exitoso para:', username);
-                    currentUser = validCredentials[username].user;
-                    showSuccess('login-success', '✅ Iniciando sesión...');
-                    
-                    setTimeout(() => {
-                        showMainApp();
-                        updateUserInterface();
-                        loadTodayData();
-                        updateFirebaseStatus('connected', `✅ Sesión local activa: ${currentUser.name}`);
-                    }, 1000);
-                } else {
-                    console.error('❌ Credenciales incorrectas');
-                    showError('login-error', '❌ Usuario o contraseña incorrectos');
-                }
-            }, 800);
-        }
-
-        async function handleRegister(e) {
-            e.preventDefault();
-
-            const formData = new FormData(e.target);
-            const name = formData.get('name');
-            const email = formData.get('email');
-            const password = formData.get('password');
-            const role = formData.get('role');
-            const department = formData.get('department');
-
-            if (!name || !email || !password || !role || !department) {
-                showError('register-error', 'Por favor completa todos los campos');
-                return;
-            }
-
-            if (password.length < 6) {
-                showError('register-error', 'La contraseña debe tener al menos 6 caracteres');
-                return;
-            }
-
-            showLoading('register-loading', true);
-
-            const result = await authService.register(email, password, {
-                name: name,
-                role: role,
-                department: department
-            });
-            
-            showLoading('register-loading', false);
-
-            if (result.success) {
-                showSuccess('register-success', `✅ Cuenta creada exitosamente para ${name}. Iniciando sesión...`);
-                e.target.reset();
-                
-                // Cambiar a tab de login después de un momento
-                setTimeout(() => {
-                    switchAuthTab('login');
-                }, 2000);
-            } else {
-                showError('register-error', `❌ ${result.error}`);
-            }
-        }
-
-        async function handleLogout() {
-            console.log('🔄 Cerrando sesión local...');
-            
-            // Limpiar usuario actual
+        // Handle logout
+        function handleLogout() {
             currentUser = null;
-            
-            // Mostrar pantalla de login
-            showAuthScreen();
-            
-            // Actualizar estado
-            updateFirebaseStatus('connected', '✅ Sesión cerrada - Login local disponible');
-            
-            console.log('✅ Logout local exitoso');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+            showToast('Sesión cerrada correctamente', 'success');
         }
 
-        async function loginDemo(role) {
-            console.log(`🔄 Iniciando login demo local para rol: ${role}`);
-            
-            // Limpiar errores previos
-            document.getElementById('login-error').style.display = 'none';
-            document.getElementById('login-success').style.display = 'none';
-            showLoading('login-loading', true);
-
-            // Simular tiempo de carga
-            setTimeout(() => {
-                // Credenciales locales de demostración
-                const demoUsers = {
-                    admin: {
-                        uid: 'local-admin-001',
-                        name: 'Administrador Demo',
-                        email: 'admin@sanignacio.edu',
-                        role: 'admin',
-                        department: 'direccion',
-                        school_id: 'colegio-san-ignacio-123',
-                        school_name: 'Colegio San Ignacio'
-                    },
-                    user: {
-                        uid: 'local-user-001',
-                        name: 'Usuario Demo',
-                        email: 'user@sanignacio.edu',
-                        role: 'user',
-                        department: 'primaria',
-                        school_id: 'colegio-san-ignacio-123',
-                        school_name: 'Colegio San Ignacio'
-                    }
-                };
-
-                showLoading('login-loading', false);
-
-                if (demoUsers[role]) {
-                    console.log('✅ Login demo local exitoso:', role);
-                    currentUser = demoUsers[role];
-                    showSuccess('login-success', `✅ Acceso demo como ${role === 'admin' ? 'Administrador' : 'Usuario'}`);
-                    
-                    setTimeout(() => {
-                        showMainApp();
-                        updateUserInterface();
-                        loadTodayData();
-                        updateFirebaseStatus('connected', `✅ Sesión demo local: ${currentUser.name}`);
-                    }, 1000);
-                } else {
-                    showError('login-error', 'Rol de demostración no válido');
-                }
-            }, 600);
-        }
-
-        function setTodayDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('attendance-date').value = today;
-            document.getElementById('classroom-date').value = today;
-            document.getElementById('report-start-date').value = today;
-            document.getElementById('report-end-date').value = today;
-        }
-
-
-
-        function switchTab(tabName) {
-            // Actualizar tabs activos
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-            // Mostrar contenido correspondiente
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-
-            // Cargar datos específicos del tab
-            if (tabName === 'students' && currentUser.role === 'director') {
-                loadAllFirebaseRecords();
-            } else if (tabName === 'reports') {
-                updateFirebaseReportSummary();
-            }
-        }
-
-        function selectAttendanceStatus(status) {
-            selectedStatus = status;
-            
-            // Actualizar botones
-            document.querySelectorAll('.attendance-btn').forEach(btn => {
-                btn.style.opacity = btn.dataset.status === status ? '1' : '0.5';
-                btn.style.transform = btn.dataset.status === status ? 'scale(1.05)' : 'scale(1)';
-            });
-        }
-
-        async function handleFirebaseAttendanceSubmit(e) {
+        // Handle attendance form submission
+        async function handleAttendanceSubmit(e) {
             e.preventDefault();
-
-            if (!selectedStatus) {
-                showError('attendance-error', 'Por favor selecciona un estado de asistencia');
-                return;
-            }
-
-            if (!currentUser || !currentUser.school_id) {
-                showError('attendance-error', 'Error: Usuario no tiene escuela asignada');
-                return;
-            }
-
-            const formData = new FormData(e.target);
-            const studentName = formData.get('student-name');
-            const studentId = formData.get('student-id');
-            const date = formData.get('attendance-date');
-            const notes = formData.get('notes') || '';
-
-            showLoading('attendance-loading', true);
-
-            const attendanceRecord = {
-                student_name: studentName,
-                student_id: studentId,
-                date: date,
-                status: selectedStatus,
-                teacher_id: currentUser.uid,
-                teacher_name: currentUser.name || currentUser.email,
-                school_id: currentUser.school_id,
-                notes: notes
-            };
-
-            const result = await attendanceService.createIndividualAttendance(attendanceRecord);
             
-            showLoading('attendance-loading', false);
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitText.textContent = 'Registrando...';
+            submitSpinner.classList.remove('hidden');
+            
+            const grado = document.getElementById('grado').value;
+            const seccion = document.getElementById('seccion').value;
+            const totalVarones = parseInt(document.getElementById('totalVarones').value);
+            const totalMujeres = parseInt(document.getElementById('totalMujeres').value);
+            const capacidadAula = parseInt(document.getElementById('capacidadAula').value);
+            
+            const now = new Date();
+            const record = {
+                fecha: now.toISOString().split('T')[0],
+                grado: grado,
+                seccion: seccion,
+                total_varones: totalVarones,
+                total_mujeres: totalMujeres,
+                capacidad_aula: capacidadAula,
+                docente: currentUser.username,
+                timestamp: now.getTime()
+            };
+            
+            const success = await saveAttendanceRecord(record);
+            
+            if (success) {
+                showToast('Asistencia registrada correctamente', 'success');
+                document.getElementById('attendanceForm').reset();
+            } else {
+                showToast('Error al registrar la asistencia', 'error');
+            }
+            
+            // Reset loading state
+            submitBtn.disabled = false;
+            submitText.textContent = 'Registrar';
+            submitSpinner.classList.add('hidden');
+        }
 
-            if (result.success) {
-                showSuccess('attendance-success', `✅ Asistencia guardada en Firebase para ${studentName}`);
-                e.target.reset();
-                setTodayDate();
-                selectedStatus = null;
+        // Render attendance table
+        function renderAttendanceTable() {
+            const tbody = document.getElementById('attendanceTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const filterGrado = document.getElementById('filterGrado').value;
+            const filterSeccion = document.getElementById('filterSeccion').value;
+            
+            // Filter records
+            let filteredRecords = attendanceRecords.filter(record => {
+                const today = new Date().toISOString().split('T')[0];
+                return record.fecha === today;
+            });
+            
+            if (filterGrado) {
+                filteredRecords = filteredRecords.filter(record => record.grado === filterGrado);
+            }
+            
+            if (filterSeccion) {
+                filteredRecords = filteredRecords.filter(record => record.seccion === filterSeccion);
+            }
+            
+            // Sort by timestamp (newest first)
+            filteredRecords.sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (filteredRecords.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            tbody.innerHTML = filteredRecords.map(record => {
+                const time = new Date(record.timestamp).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
                 
-                // Resetear botones
-                document.querySelectorAll('.attendance-btn').forEach(btn => {
-                    btn.style.opacity = '1';
-                    btn.style.transform = 'scale(1)';
-                });
-
-                // Recargar datos
-                loadTodayData();
-            } else {
-                showError('attendance-error', `❌ Error de Firebase: ${result.error}`);
-            }
+                const totalPresentes = record.total_varones + record.total_mujeres;
+                const capacidad = record.capacidad_aula || 0;
+                const ocupacionPorcentaje = capacidad > 0 ? Math.round((totalPresentes / capacidad) * 100) : 0;
+                const ocupacionColor = ocupacionPorcentaje > 90 ? 'text-red-600' : ocupacionPorcentaje > 75 ? 'text-yellow-600' : 'text-green-600';
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.grado}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.seccion}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.total_varones}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.total_mujeres}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${totalPresentes}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div class="flex flex-col">
+                                <span class="font-medium">${capacidad}</span>
+                                <span class="text-xs ${ocupacionColor}">${ocupacionPorcentaje}% ocupado</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.docente}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${time}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="openEditModal('${record.__backendId}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="openDeleteModal('${record.__backendId}')" class="text-red-600 hover:text-red-900">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        async function handleFirebaseClassroomSubmit(e) {
+        // Open edit modal
+        function openEditModal(recordId) {
+            const record = attendanceRecords.find(r => r.id === recordId);
+            if (!record) return;
+            
+            editingRecord = record;
+            
+            document.getElementById('editGrado').value = record.grado;
+            document.getElementById('editSeccion').value = record.seccion;
+            document.getElementById('editVarones').value = record.total_varones;
+            document.getElementById('editMujeres').value = record.total_mujeres;
+            document.getElementById('editCapacidad').value = record.capacidad_aula || '';
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingRecord = null;
+        }
+
+        // Handle edit form submission
+        async function handleEditSubmit(e) {
             e.preventDefault();
-
-            if (!currentUser || !currentUser.school_id) {
-                showError('classroom-error', 'Error: Usuario no tiene escuela asignada');
-                return;
-            }
-
-            const formData = new FormData(e.target);
-            const grade = formData.get('classroom-grade');
-            const section = formData.get('classroom-section');
-            const date = formData.get('classroom-date');
-            const malePresent = parseInt(formData.get('male-present')) || 0;
-            const femalePresent = parseInt(formData.get('female-present')) || 0;
-            const totalAbsent = parseInt(formData.get('total-absent')) || 0;
-            const totalEnrolled = parseInt(formData.get('total-enrolled')) || 0;
-            const notes = formData.get('classroom-notes') || '';
-
-            // Validaciones
-            const totalPresent = malePresent + femalePresent;
-            if (totalPresent + totalAbsent !== totalEnrolled) {
-                showError('classroom-error', `❌ Error: Los presentes (${totalPresent}) + ausentes (${totalAbsent}) deben sumar el total matriculado (${totalEnrolled})`);
-                return;
-            }
-
-            showLoading('classroom-loading', true);
-
-            const classroomRecord = {
-                grade: grade,
-                section: section,
-                date: date,
-                male_present: malePresent,
-                female_present: femalePresent,
-                total_absent: totalAbsent,
-                total_enrolled: totalEnrolled,
-                teacher_id: currentUser.uid,
-                teacher_name: currentUser.name || currentUser.email,
-                school_id: currentUser.school_id,
-                notes: notes
+            
+            if (!editingRecord) return;
+            
+            const saveBtn = document.getElementById('saveEdit');
+            const saveText = document.getElementById('saveEditText');
+            const saveSpinner = document.getElementById('saveEditSpinner');
+            
+            // Show loading state
+            saveBtn.disabled = true;
+            saveText.textContent = 'Guardando...';
+            saveSpinner.classList.remove('hidden');
+            
+            const updatedData = {
+                grado: document.getElementById('editGrado').value,
+                seccion: document.getElementById('editSeccion').value,
+                total_varones: parseInt(document.getElementById('editVarones').value),
+                total_mujeres: parseInt(document.getElementById('editMujeres').value),
+                capacidad_aula: parseInt(document.getElementById('editCapacidad').value)
             };
-
-            const result = await attendanceService.createClassroomAttendance(classroomRecord);
             
-            showLoading('classroom-loading', false);
-
-            if (result.success) {
-                showSuccess('classroom-success', `✅ Aula guardada en Firebase: ${grade} ${section} - ${totalPresent} presentes, ${totalAbsent} ausentes`);
-                e.target.reset();
-                setTodayDate();
-                loadTodayData();
+            const success = await updateAttendanceRecord(editingRecord.id, updatedData);
+            
+            if (success) {
+                showToast('Registro actualizado correctamente', 'success');
+                closeEditModal();
             } else {
-                showError('classroom-error', `❌ Error de Firebase: ${result.error}`);
+                showToast('Error al actualizar el registro', 'error');
             }
-        }
-
-        async function loadTodayData() {
-            if (!currentUser || !currentUser.school_id) return;
-
-            try {
-                // Cargar asistencia individual
-                const individualResult = await attendanceService.getTodayAttendance(currentUser.school_id, 'individual');
-                if (individualResult.success) {
-                    attendanceRecords = individualResult.data;
-                    updateAttendanceDisplay();
-                }
-
-                // Cargar asistencia por aula
-                const classroomResult = await attendanceService.getTodayAttendance(currentUser.school_id, 'classroom');
-                if (classroomResult.success) {
-                    classroomRecords = classroomResult.data;
-                    updateClassroomDisplay();
-                }
-            } catch (error) {
-                console.error('Error loading today data:', error);
-            }
-        }
-
-        function updateAttendanceDisplay() {
-            const container = document.getElementById('today-records');
             
-            if (attendanceRecords.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">📭 No hay registros individuales para hoy en Firebase</p>';
-                return;
-            }
-
-            container.innerHTML = attendanceRecords.map(record => `
-                <div class="attendance-item">
-                    <div class="attendance-info">
-                        <h4>${record.student_name} (ID: ${record.student_id})</h4>
-                        <p>👨‍🏫 Docente: ${record.teacher_name}</p>
-                        ${record.notes ? `<p>📝 Notas: ${record.notes}</p>` : ''}
-                        <p style="font-size: 10px; color: #718096;">🔥 Firebase ID: ${record.id}</p>
-                    </div>
-                    <div class="status-badge status-${record.status}">
-                        ${getStatusText(record.status)}
-                    </div>
-                </div>
-            `).join('');
+            // Reset loading state
+            saveBtn.disabled = false;
+            saveText.textContent = 'Guardar';
+            saveSpinner.classList.add('hidden');
         }
 
-        function updateClassroomDisplay() {
-            const container = document.getElementById('today-classroom-records');
+        // Open delete modal
+        function openDeleteModal(recordId) {
+            const record = attendanceRecords.find(r => r.id === recordId);
+            if (!record) return;
             
-            if (classroomRecords.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">📭 No hay registros de aulas para hoy en Firebase</p>';
-                return;
-            }
-
-            container.innerHTML = classroomRecords.map(record => `
-                <div class="attendance-item">
-                    <div class="attendance-info">
-                        <h4>🏫 ${record.grade} - Sección ${record.section}</h4>
-                        <p>👦 Varones: ${record.male_present} | 👧 Mujeres: ${record.female_present}</p>
-                        <p>❌ Ausentes: ${record.total_absent} | 👥 Total: ${record.total_enrolled}</p>
-                        <p>👨‍🏫 Docente: ${record.teacher_name}</p>
-                        ${record.notes ? `<p>📝 Notas: ${record.notes}</p>` : ''}
-                        <p style="font-size: 10px; color: #718096;">🔥 Firebase ID: ${record.id}</p>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 24px; font-weight: bold; color: #48bb78;">
-                            ${record.male_present + record.female_present}
-                        </div>
-                        <div style="font-size: 12px; color: #4a5568;">Presentes</div>
-                    </div>
-                </div>
-            `).join('');
+            deletingRecord = record;
+            document.getElementById('deleteModal').classList.remove('hidden');
         }
 
-        async function generateFirebaseReport() {
-            const startDate = document.getElementById('report-start-date').value;
-            const endDate = document.getElementById('report-end-date').value;
-
-            if (!startDate || !endDate) {
-                showError('report-error', 'Por favor selecciona las fechas de inicio y fin');
-                return;
-            }
-
-            if (!currentUser || !currentUser.school_id) {
-                showError('report-error', 'Error: Usuario no tiene escuela asignada');
-                return;
-            }
-
-            showLoading('report-loading', true);
-
-            try {
-                // Obtener datos de Firebase
-                const [individualResult, classroomResult] = await Promise.all([
-                    attendanceService.getAttendanceByDate(currentUser.school_id, startDate, endDate, 'individual'),
-                    attendanceService.getAttendanceByDate(currentUser.school_id, startDate, endDate, 'classroom')
-                ]);
-
-                if (!individualResult.success || !classroomResult.success) {
-                    throw new Error('Error al obtener datos de Firebase');
-                }
-
-                const individualData = individualResult.data;
-                const classroomData = classroomResult.data;
-
-                if (individualData.length === 0 && classroomData.length === 0) {
-                    showLoading('report-loading', false);
-                    showError('report-error', 'No hay registros en Firebase para el rango de fechas seleccionado');
-                    return;
-                }
-
-                // Preparar datos para Excel - Registros Individuales
-                const individualExcelData = individualData.map(record => ({
-                    'Fecha': record.date,
-                    'Nombre del Estudiante': record.student_name,
-                    'ID Estudiante': record.student_id,
-                    'Estado': getStatusText(record.status),
-                    'Docente': record.teacher_name,
-                    'Notas': record.notes || '',
-                    'Firebase ID': record.id,
-                    'Hora de Registro': record.timestamp ? new Date(record.timestamp.seconds * 1000).toLocaleString('es-ES') : 'N/A'
-                }));
-
-                // Preparar datos para Excel - Registros por Aula
-                const classroomExcelData = classroomData.map(record => ({
-                    'Fecha': record.date,
-                    'Grado': record.grade,
-                    'Sección': record.section,
-                    'Varones Presentes': record.male_present,
-                    'Mujeres Presentes': record.female_present,
-                    'Total Presentes': record.male_present + record.female_present,
-                    'Total Ausentes': record.total_absent,
-                    'Total Matriculados': record.total_enrolled,
-                    'Docente': record.teacher_name,
-                    'Notas': record.notes || '',
-                    'Firebase ID': record.id,
-                    'Hora de Registro': record.timestamp ? new Date(record.timestamp.seconds * 1000).toLocaleString('es-ES') : 'N/A'
-                }));
-
-                // Crear libro de Excel
-                const wb = XLSX.utils.book_new();
-
-                // Hoja de registros individuales
-                if (individualExcelData.length > 0) {
-                    const wsIndividual = XLSX.utils.json_to_sheet(individualExcelData);
-                    const colWidthsIndividual = [
-                        { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, 
-                        { wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 20 }
-                    ];
-                    wsIndividual['!cols'] = colWidthsIndividual;
-                    XLSX.utils.book_append_sheet(wb, wsIndividual, 'Asistencia Individual');
-                }
-
-                // Hoja de registros por aula
-                if (classroomExcelData.length > 0) {
-                    const wsClassroom = XLSX.utils.json_to_sheet(classroomExcelData);
-                    const colWidthsClassroom = [
-                        { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, 
-                        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, 
-                        { wch: 20 }, { wch: 20 }
-                    ];
-                    wsClassroom['!cols'] = colWidthsClassroom;
-                    XLSX.utils.book_append_sheet(wb, wsClassroom, 'Asistencia por Aula');
-                }
-
-                // Generar nombre de archivo
-                const fileName = `Reporte_Firebase_${currentUser.school_name || 'Escuela'}_${startDate}_${endDate}.xlsx`;
-
-                // Descargar archivo
-                XLSX.writeFile(wb, fileName);
-
-                showLoading('report-loading', false);
-                showSuccess('report-success', `📊 Reporte de Firebase generado: ${fileName}`);
-
-            } catch (error) {
-                showLoading('report-loading', false);
-                showError('report-error', `❌ Error generando reporte: ${error.message}`);
-            }
+        // Close delete modal
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            deletingRecord = null;
         }
 
-        async function updateFirebaseReportSummary() {
-            const startDate = document.getElementById('report-start-date').value;
-            const endDate = document.getElementById('report-end-date').value;
-
-            if (!startDate || !endDate || !currentUser || !currentUser.school_id) return;
-
-            try {
-                const [individualResult, classroomResult] = await Promise.all([
-                    attendanceService.getAttendanceByDate(currentUser.school_id, startDate, endDate, 'individual'),
-                    attendanceService.getAttendanceByDate(currentUser.school_id, startDate, endDate, 'classroom')
-                ]);
-
-                if (!individualResult.success || !classroomResult.success) return;
-
-                const individualRecords = individualResult.data;
-                const classroomRecords = classroomResult.data;
-
-                // Resumen individual
-                const individualSummary = {
-                    total: individualRecords.length,
-                    presente: individualRecords.filter(r => r.status === 'presente').length,
-                    ausente: individualRecords.filter(r => r.status === 'ausente').length,
-                    tardanza: individualRecords.filter(r => r.status === 'tardanza').length,
-                    justificado: individualRecords.filter(r => r.status === 'justificado').length
-                };
-
-                // Resumen por aula
-                const classroomSummary = {
-                    totalAulas: classroomRecords.length,
-                    totalVarones: classroomRecords.reduce((sum, r) => sum + (r.male_present || 0), 0),
-                    totalMujeres: classroomRecords.reduce((sum, r) => sum + (r.female_present || 0), 0),
-                    totalAusentes: classroomRecords.reduce((sum, r) => sum + (r.total_absent || 0), 0),
-                    totalMatriculados: classroomRecords.reduce((sum, r) => sum + (r.total_enrolled || 0), 0)
-                };
-
-                const summaryContainer = document.getElementById('report-summary');
-                summaryContainer.innerHTML = `
-                    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                        <h4 style="margin: 0 0 15px 0; color: #2d3748;">📊 Resumen desde Firebase</h4>
-                        
-                        ${individualRecords.length > 0 ? `
-                        <div style="margin-bottom: 20px;">
-                            <h5 style="margin: 0 0 10px 0; color: #4a5568;">👤 Asistencia Individual</h5>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
-                                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #2d3748;">${individualSummary.total}</div>
-                                    <div style="font-size: 11px; color: #4a5568;">Total</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #c6f6d5; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #22543d;">${individualSummary.presente}</div>
-                                    <div style="font-size: 11px; color: #22543d;">Presentes</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #fed7d7; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #742a2a;">${individualSummary.ausente}</div>
-                                    <div style="font-size: 11px; color: #742a2a;">Ausentes</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #feebc8; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #7b341e;">${individualSummary.tardanza}</div>
-                                    <div style="font-size: 11px; color: #7b341e;">Tardanzas</div>
-                                </div>
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        ${classroomRecords.length > 0 ? `
-                        <div>
-                            <h5 style="margin: 0 0 10px 0; color: #4a5568;">🏫 Asistencia por Aula</h5>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
-                                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #2d3748;">${classroomSummary.totalAulas}</div>
-                                    <div style="font-size: 11px; color: #4a5568;">Aulas</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #bee3f8; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #2a4365;">${classroomSummary.totalVarones}</div>
-                                    <div style="font-size: 11px; color: #2a4365;">👦 Varones</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #fbb6ce; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #97266d;">${classroomSummary.totalMujeres}</div>
-                                    <div style="font-size: 11px; color: #97266d;">👧 Mujeres</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #fed7d7; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #742a2a;">${classroomSummary.totalAusentes}</div>
-                                    <div style="font-size: 11px; color: #742a2a;">❌ Ausentes</div>
-                                </div>
-                                <div style="text-align: center; padding: 8px; background: #c6f6d5; border-radius: 6px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #22543d;">${classroomSummary.totalVarones + classroomSummary.totalMujeres}</div>
-                                    <div style="font-size: 11px; color: #22543d;">✅ Presentes</div>
-                                </div>
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        ${individualRecords.length === 0 && classroomRecords.length === 0 ? '<p style="text-align: center; color: #4a5568; margin: 0;">📭 No hay registros en Firebase para el período seleccionado</p>' : ''}
-                    </div>
-                `;
-            } catch (error) {
-                console.error('Error updating report summary:', error);
+        // Handle delete confirmation
+        async function handleDeleteConfirm() {
+            if (!deletingRecord) return;
+            
+            const deleteBtn = document.getElementById('confirmDelete');
+            const deleteText = document.getElementById('deleteText');
+            const deleteSpinner = document.getElementById('deleteSpinner');
+            
+            // Show loading state
+            deleteBtn.disabled = true;
+            deleteText.textContent = 'Eliminando...';
+            deleteSpinner.classList.remove('hidden');
+            
+            const success = await deleteAttendanceRecord(deletingRecord.id);
+            
+            if (success) {
+                showToast('Registro eliminado correctamente', 'success');
+                closeDeleteModal();
+            } else {
+                showToast('Error al eliminar el registro', 'error');
             }
+            
+            // Reset loading state
+            deleteBtn.disabled = false;
+            deleteText.textContent = 'Eliminar';
+            deleteSpinner.classList.add('hidden');
         }
 
-        async function loadAllFirebaseRecords() {
-            if (!currentUser || !currentUser.school_id || currentUser.role !== 'director') return;
+        // Update record count
+        function updateRecordCount() {
+            document.getElementById('recordCount').textContent = recordCount;
+        }
 
-            const container = document.getElementById('all-records');
-            container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">🔄 Cargando registros desde Firebase...</p>';
+        // Update current date
+        function updateCurrentDate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('currentDate').textContent = dateStr;
+        }
 
-            try {
-                const result = await attendanceService.getAttendanceByDate(
-                    currentUser.school_id, 
-                    '2020-01-01', 
-                    '2030-12-31', 
-                    'individual'
-                );
-
-                if (!result.success) {
-                    container.innerHTML = '<p style="text-align: center; color: #f56565; padding: 20px;">❌ Error cargando registros de Firebase</p>';
-                    return;
-                }
-
-                const records = result.data;
-
-                if (records.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #4a5568; padding: 20px;">📭 No hay registros disponibles en Firebase</p>';
-                    return;
-                }
-
-                // Agrupar por estudiante
-                const studentGroups = {};
-                records.forEach(record => {
-                    if (!studentGroups[record.student_id]) {
-                        studentGroups[record.student_id] = {
-                            name: record.student_name,
-                            records: []
-                        };
-                    }
-                    studentGroups[record.student_id].records.push(record);
+        // Download PDF report
+        function downloadPDF() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecords = attendanceRecords.filter(record => record.fecha === today);
+            
+            if (todayRecords.length === 0) {
+                showToast('No hay registros para descargar', 'error');
+                return;
+            }
+            
+            // Create PDF content
+            let pdfContent = `REPORTE DE ASISTENCIA DIARIA\n`;
+            pdfContent += `Colegio San Ignacio de Loyola\n`;
+            pdfContent += `Fecha: ${new Date().toLocaleDateString('es-ES')}\n\n`;
+            pdfContent += `GRADO\tSECCIÓN\tVARONES\tMUJERES\tTOTAL\tCAPACIDAD\tOCUPACIÓN\tDOCENTE\tHORA\n`;
+            pdfContent += `${'='.repeat(100)}\n`;
+            
+            todayRecords.forEach(record => {
+                const time = new Date(record.timestamp).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
                 });
+                const totalPresentes = record.total_varones + record.total_mujeres;
+                const capacidad = record.capacidad_aula || 0;
+                const ocupacion = capacidad > 0 ? Math.round((totalPresentes / capacidad) * 100) + '%' : 'N/A';
+                pdfContent += `${record.grado}\t${record.seccion}\t${record.total_varones}\t${record.total_mujeres}\t${totalPresentes}\t${capacidad}\t${ocupacion}\t${record.docente}\t${time}\n`;
+            });
+            
+            // Calculate totals
+            const totalVarones = todayRecords.reduce((sum, record) => sum + record.total_varones, 0);
+            const totalMujeres = todayRecords.reduce((sum, record) => sum + record.total_mujeres, 0);
+            
+            pdfContent += `\nRESUMEN:\n`;
+            pdfContent += `Total Varones: ${totalVarones}\n`;
+            pdfContent += `Total Mujeres: ${totalMujeres}\n`;
+            pdfContent += `Total General: ${totalVarones + totalMujeres}\n`;
+            
+            // Download as text file (simulating PDF)
+            const blob = new Blob([pdfContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reporte_asistencia_${today}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Reporte PDF descargado', 'success');
+        }
 
-                container.innerHTML = Object.entries(studentGroups).map(([studentId, data]) => `
-                    <div style="background: #f7fafc; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                        <h4 style="margin: 0 0 10px 0; color: #2d3748;">👤 ${data.name} (ID: ${studentId})</h4>
-                        <div style="font-size: 12px; color: #4a5568;">📊 Total de registros en Firebase: ${data.records.length}</div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 10px;">
-                            ${data.records.slice(-5).map(record => `
-                                <div style="background: white; padding: 8px; border-radius: 4px; font-size: 11px;">
-                                    <div><strong>📅 ${record.date}</strong></div>
-                                    <div class="status-badge status-${record.status}" style="margin-top: 4px; display: inline-block;">
-                                        ${getStatusText(record.status)}
-                                    </div>
-                                    <div style="font-size: 9px; color: #718096; margin-top: 2px;">🔥 ${record.id}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (error) {
-                console.error('Error loading all records:', error);
-                container.innerHTML = '<p style="text-align: center; color: #f56565; padding: 20px;">❌ Error cargando registros de Firebase</p>';
+        // Download CSV report
+        function downloadCSV() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecords = attendanceRecords.filter(record => record.fecha === today);
+            
+            if (todayRecords.length === 0) {
+                showToast('No hay registros para descargar', 'error');
+                return;
             }
+            
+            // Create CSV content
+            let csvContent = 'Grado,Sección,Varones,Mujeres,Total,Capacidad,Ocupación,Docente,Hora\n';
+            
+            todayRecords.forEach(record => {
+                const time = new Date(record.timestamp).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const totalPresentes = record.total_varones + record.total_mujeres;
+                const capacidad = record.capacidad_aula || 0;
+                const ocupacion = capacidad > 0 ? Math.round((totalPresentes / capacidad) * 100) + '%' : 'N/A';
+                csvContent += `${record.grado},${record.seccion},${record.total_varones},${record.total_mujeres},${totalPresentes},${capacidad},${ocupacion},${record.docente},${time}\n`;
+            });
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `asistencia_${today}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Reporte CSV descargado', 'success');
         }
 
-        function getStatusText(status) {
-            const statusMap = {
-                presente: 'Presente',
-                ausente: 'Ausente',
-                tardanza: 'Tardanza',
-                justificado: 'Justificado'
-            };
-            return statusMap[status] || status;
-        }
-
-        function showLoading(elementId, show) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.style.display = show ? 'block' : 'none';
-            }
-        }
-
-        function showError(elementId, message) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = message;
-                element.style.display = 'block';
-                setTimeout(() => {
-                    element.style.display = 'none';
-                }, 8000);
-            }
-        }
-
-        function showSuccess(elementId, message) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = message;
-                element.style.display = 'block';
-                setTimeout(() => {
-                    element.style.display = 'none';
-                }, 5000);
-            } else {
-                console.warn(`Elemento ${elementId} no encontrado para mostrar éxito:`, message);
-            }
-        }
-
-        // Función para probar Firebase manualmente
-        async function testFirebaseManually() {
-            const debugInfo = document.getElementById('debug-info');
-            debugInfo.innerHTML = '🔄 Probando conexión...';
-
-            try {
-                // Verificar que Firebase esté disponible
-                if (!window.firebaseDb) {
-                    throw new Error('window.firebaseDb no está disponible');
-                }
-                if (!window.firebaseModules) {
-                    throw new Error('window.firebaseModules no está disponible');
-                }
-
-                // Intentar crear un documento de prueba
-                const testData = {
-                    test: true,
-                    timestamp: new Date().toISOString(),
-                    school_id: 'test-school',
-                    message: 'Prueba manual de conexión'
-                };
-
-                console.log('🧪 Creando documento de prueba:', testData);
-
-                const docRef = await window.firebaseModules.addDoc(
-                    window.firebaseModules.collection(window.firebaseDb, 'manual_test'), 
-                    testData
-                );
-
-                debugInfo.innerHTML = `
-                    ✅ <strong>Conexión exitosa!</strong><br>
-                    📄 Documento creado: ${docRef.id}<br>
-                    🏗️ Proyecto: base-de-datos-san-ignacio<br>
-                    🔗 Firebase SDK: Cargado correctamente
-                `;
-
-                updateFirebaseStatus('connected', '✅ Firebase funcionando correctamente');
-
-            } catch (error) {
-                console.error('❌ Error en prueba manual:', error);
-                debugInfo.innerHTML = `
-                    ❌ <strong>Error de conexión:</strong><br>
-                    🚨 ${error.message}<br>
-                    🔍 Código: ${error.code || 'N/A'}<br>
-                    📊 Firebase DB: ${window.firebaseDb ? 'Disponible' : 'No disponible'}<br>
-                    🛠️ Módulos: ${window.firebaseModules ? 'Disponible' : 'No disponible'}
-                `;
-
-                updateFirebaseStatus('error', '❌ Error de conexión a Firebase');
-            }
-        }
-
-        // Función para probar guardado de asistencia
-        async function testAttendanceSave() {
-            const debugInfo = document.getElementById('debug-info');
-            debugInfo.innerHTML = '🔄 Probando guardado de asistencia...';
-
-            try {
-                if (!attendanceService) {
-                    throw new Error('AttendanceService no está inicializado');
-                }
-
-                // Datos de prueba
-                const testAttendance = {
-                    student_name: 'Estudiante de Prueba',
-                    student_id: 'TEST-001',
-                    date: new Date().toISOString().split('T')[0],
-                    status: 'presente',
-                    teacher_id: 'test-teacher',
-                    teacher_name: 'Profesor de Prueba',
-                    school_id: 'colegio-san-ignacio-123',
-                    notes: 'Prueba de guardado desde diagnóstico'
-                };
-
-                console.log('💾 Probando guardado con datos:', testAttendance);
-
-                const result = await attendanceService.createIndividualAttendance(testAttendance);
-
-                if (result.success) {
-                    debugInfo.innerHTML = `
-                        ✅ <strong>Guardado exitoso!</strong><br>
-                        📄 ID del documento: ${result.id}<br>
-                        👤 Estudiante: ${testAttendance.student_name}<br>
-                        📅 Fecha: ${testAttendance.date}<br>
-                        ✅ Estado: ${testAttendance.status}
-                    `;
-                    updateFirebaseStatus('connected', '✅ Guardado de asistencia funcionando');
-                } else {
-                    throw new Error(result.error);
-                }
-
-            } catch (error) {
-                console.error('❌ Error en prueba de guardado:', error);
-                debugInfo.innerHTML = `
-                    ❌ <strong>Error de guardado:</strong><br>
-                    🚨 ${error.message}<br>
-                    🔍 AttendanceService: ${attendanceService ? 'Disponible' : 'No disponible'}<br>
-                    📊 Firebase DB: ${window.firebaseDb ? 'Disponible' : 'No disponible'}<br>
-                    🛠️ Módulos: ${window.firebaseModules ? 'Disponible' : 'No disponible'}
-                `;
-                updateFirebaseStatus('error', '❌ Error en guardado de asistencia');
-            }
-        }
-
-        // Actualizar información de diagnóstico al cargar
-        document.addEventListener('DOMContentLoaded', function() {
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Hide and remove toast
             setTimeout(() => {
-                const debugInfo = document.getElementById('debug-info');
-                debugInfo.innerHTML = `
-                    📊 Firebase DB: ${window.firebaseDb ? '✅ Disponible' : '❌ No disponible'}<br>
-                    🛠️ Módulos: ${window.firebaseModules ? '✅ Disponible' : '❌ No disponible'}<br>
-                    🏗️ Proyecto: base-de-datos-san-ignacio<br>
-                    👤 Usuario: ${currentUser ? currentUser.name : 'No configurado'}
-                `;
-            }, 1000);
-        });
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996dc5f3b6dba64c',t:'MTc2MTg1NzMwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996dfac3d2f5d955',t:'MTc2MTg1OTQ2Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
