@@ -533,7 +533,9 @@
     </div>
     <div id="debug-info">
      Cargando...
-    </div><button onclick="testFirebaseManually()" style="margin-top: 5px; padding: 5px 10px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer;"> 🧪 Probar Conexión Manual </button>
+    </div>
+    <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;"><button onclick="testFirebaseManually()" style="padding: 5px 10px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"> 🧪 Probar Conexión </button> <button onclick="testAttendanceSave()" style="padding: 5px 10px; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"> 💾 Probar Guardado </button>
+    </div>
    </div><!-- Pantalla de Autenticación -->
    <section id="auth-screen" class="auth-screen" style="display: none;">
     <div class="auth-container">
@@ -553,7 +555,7 @@
        <div class="spinner"></div> Iniciando sesión...
       </div>
       <form id="login-form" class="auth-form">
-       <div class="form-group"><label for="login-email">📧 Correo Electrónico:</label> <input type="email" id="login-email" name="email" required placeholder="usuario@sanignacio.edu">
+       <div class="form-group"><label for="login-username">👤 Usuario:</label> <input type="text" id="login-username" name="username" required placeholder="admin o user">
        </div>
        <div class="form-group"><label for="login-password">🔒 Contraseña:</label> <input type="password" id="login-password" name="password" required placeholder="Tu contraseña">
        </div><button type="submit" class="btn btn-primary">🚀 Iniciar Sesión</button>
@@ -765,28 +767,63 @@
                 try {
                     console.log('🔄 Intentando guardar en Firebase:', attendanceData);
                     
-                    if (!this.db || !this.modules) {
-                        throw new Error('Firebase no está inicializado correctamente');
+                    // Verificaciones detalladas
+                    if (!this.db) {
+                        console.error('❌ this.db no está disponible');
+                        throw new Error('Firebase Database no está inicializado');
+                    }
+                    
+                    if (!this.modules) {
+                        console.error('❌ this.modules no está disponible');
+                        throw new Error('Firebase Modules no están inicializados');
+                    }
+
+                    if (!this.modules.addDoc) {
+                        console.error('❌ addDoc no está disponible en modules');
+                        throw new Error('Función addDoc no está disponible');
+                    }
+
+                    if (!this.modules.collection) {
+                        console.error('❌ collection no está disponible en modules');
+                        throw new Error('Función collection no está disponible');
+                    }
+
+                    if (!this.modules.serverTimestamp) {
+                        console.error('❌ serverTimestamp no está disponible en modules');
+                        throw new Error('Función serverTimestamp no está disponible');
                     }
 
                     const docData = {
                         ...attendanceData,
                         timestamp: this.modules.serverTimestamp(),
-                        created_at: new Date().toISOString()
+                        created_at: new Date().toISOString(),
+                        saved_from: 'web_app'
                     };
 
-                    console.log('📝 Datos a guardar:', docData);
+                    console.log('📝 Datos finales a guardar:', docData);
+                    console.log('🏗️ Usando colección: attendance_individual');
 
-                    const docRef = await this.modules.addDoc(
-                        this.modules.collection(this.db, 'attendance_individual'), 
-                        docData
-                    );
+                    const collectionRef = this.modules.collection(this.db, 'attendance_individual');
+                    console.log('📂 Referencia de colección creada:', collectionRef);
+
+                    const docRef = await this.modules.addDoc(collectionRef, docData);
                     
-                    console.log('✅ Documento guardado con ID:', docRef.id);
+                    console.log('✅ Documento guardado exitosamente con ID:', docRef.id);
                     return { success: true, id: docRef.id };
                 } catch (error) {
-                    console.error('❌ Error creating individual attendance:', error);
-                    console.error('Error details:', error.code, error.message);
+                    console.error('❌ Error completo creating individual attendance:', error);
+                    console.error('❌ Error code:', error.code);
+                    console.error('❌ Error message:', error.message);
+                    console.error('❌ Error stack:', error.stack);
+                    
+                    // Diagnóstico adicional
+                    console.log('🔍 Diagnóstico del error:');
+                    console.log('  - Firebase DB:', !!this.db);
+                    console.log('  - Firebase Modules:', !!this.modules);
+                    console.log('  - addDoc function:', !!this.modules?.addDoc);
+                    console.log('  - collection function:', !!this.modules?.collection);
+                    console.log('  - serverTimestamp function:', !!this.modules?.serverTimestamp);
+                    
                     return { success: false, error: `${error.code || 'UNKNOWN'}: ${error.message}` };
                 }
             }
@@ -998,50 +1035,33 @@
             try {
                 console.log('🚀 Iniciando aplicación...');
                 
-                // Esperar a que Firebase esté disponible
+                // Esperar a que Firebase esté disponible (solo para datos)
                 await waitForFirebase();
-                console.log('✅ Firebase disponible');
+                console.log('✅ Firebase disponible para datos');
 
-                // Inicializar servicios
+                // Inicializar solo servicios necesarios
                 attendanceService = new FirebaseAttendanceService();
-                authService = new FirebaseAuthService();
                 userService = new FirebaseUserService();
-                console.log('✅ Servicios inicializados');
+                console.log('✅ Servicios de datos inicializados');
 
                 setupEventListeners();
                 setTodayDate();
 
-                // Configurar listener de autenticación ANTES de cualquier otra cosa
-                console.log('🔄 Configurando listener de autenticación...');
-                authService.onAuthChange((user) => {
-                    console.log('🔄 Estado de autenticación cambió:', user ? 'Usuario logueado' : 'Usuario no logueado');
-                    
-                    if (user) {
-                        console.log('✅ Usuario autenticado:', user);
-                        currentUser = user;
-                        showMainApp();
-                        updateUserInterface();
-                        loadTodayData();
-                        updateFirebaseStatus('connected', `✅ Conectado como ${user.name || user.email}`);
-                    } else {
-                        console.log('❌ Usuario no autenticado');
-                        currentUser = null;
-                        showAuthScreen();
-                        updateFirebaseStatus('connected', '⚠️ Firebase listo - Esperando login');
-                    }
-                });
+                // Mostrar pantalla de login (sin Firebase Auth)
+                showAuthScreen();
+                updateFirebaseStatus('connected', '✅ Sistema listo - Login local activo');
 
-                // Probar conexión básica a Firebase
+                // Probar conexión básica a Firebase (solo para datos)
                 try {
                     await testFirebaseConnection();
-                    console.log('✅ Conexión a Firebase exitosa');
-                    updateFirebaseStatus('connected', '✅ Firebase conectado - Listo para usar');
+                    console.log('✅ Conexión a Firebase exitosa para datos');
+                    updateFirebaseStatus('connected', '✅ Firebase conectado para datos - Login local');
                 } catch (error) {
                     console.warn('⚠️ Conexión inicial falló, pero continuando:', error);
-                    updateFirebaseStatus('connected', '⚠️ Firebase inicializado - Puede haber problemas de red');
+                    updateFirebaseStatus('connected', '⚠️ Firebase para datos - Login local activo');
                 }
 
-                console.log('🎉 Aplicación inicializada correctamente');
+                console.log('🎉 Aplicación inicializada correctamente con login local');
 
             } catch (error) {
                 console.error('❌ Error crítico inicializando aplicación:', error);
@@ -1073,12 +1093,23 @@
 
         async function testFirebaseConnection() {
             try {
-                // Intentar crear una colección de prueba (sin depender de currentUser)
+                console.log('🔄 Probando conexión a Firebase...');
+                console.log('📊 Firebase DB disponible:', !!window.firebaseDb);
+                console.log('🛠️ Firebase Modules disponible:', !!window.firebaseModules);
+                
+                if (!window.firebaseDb || !window.firebaseModules) {
+                    throw new Error('Firebase SDK no está completamente cargado');
+                }
+
+                // Intentar crear una colección de prueba
                 const testDoc = {
                     test: true,
                     timestamp: new Date().toISOString(),
-                    school_id: 'test-connection'
+                    school_id: 'test-connection',
+                    created_by: 'system_test'
                 };
+                
+                console.log('📝 Creando documento de prueba:', testDoc);
                 
                 const docRef = await window.firebaseModules.addDoc(
                     window.firebaseModules.collection(window.firebaseDb, 'connection_test'), 
@@ -1089,6 +1120,8 @@
                 return true;
             } catch (error) {
                 console.error('❌ Error de conexión a Firebase:', error);
+                console.error('❌ Error code:', error.code);
+                console.error('❌ Error message:', error.message);
                 throw error;
             }
         }
@@ -1202,19 +1235,13 @@
             e.preventDefault();
 
             const formData = new FormData(e.target);
-            const email = formData.get('email');
+            const username = formData.get('username');
             const password = formData.get('password');
 
-            console.log('🔄 Intentando login con:', email);
+            console.log('🔄 Intentando login local con usuario:', username);
 
-            if (!email || !password) {
+            if (!username || !password) {
                 showError('login-error', 'Por favor completa todos los campos');
-                return;
-            }
-
-            // Verificar que authService esté disponible
-            if (!authService) {
-                showError('login-error', 'Sistema de autenticación no está listo. Recarga la página.');
                 return;
             }
 
@@ -1222,26 +1249,54 @@
             document.getElementById('login-error').style.display = 'none';
             showLoading('login-loading', true);
 
-            try {
-                console.log('🔄 Llamando a authService.login...');
-                const result = await authService.login(email, password);
-                
-                console.log('📋 Resultado del login:', result);
+            // Simular tiempo de carga
+            setTimeout(() => {
+                // Credenciales locales (sin Firebase)
+                const validCredentials = {
+                    'admin': {
+                        password: 'admin123',
+                        user: {
+                            uid: 'local-admin-001',
+                            name: 'Administrador Local',
+                            email: 'admin@sanignacio.edu',
+                            role: 'admin',
+                            department: 'direccion',
+                            school_id: 'colegio-san-ignacio-123',
+                            school_name: 'Colegio San Ignacio'
+                        }
+                    },
+                    'user': {
+                        password: 'user123',
+                        user: {
+                            uid: 'local-user-001',
+                            name: 'Usuario Local',
+                            email: 'user@sanignacio.edu',
+                            role: 'user',
+                            department: 'primaria',
+                            school_id: 'colegio-san-ignacio-123',
+                            school_name: 'Colegio San Ignacio'
+                        }
+                    }
+                };
+
                 showLoading('login-loading', false);
 
-                if (result.success) {
-                    console.log('✅ Login exitoso:', result.user);
-                    // El listener onAuthChange se encargará de mostrar la app principal
+                if (validCredentials[username] && validCredentials[username].password === password) {
+                    console.log('✅ Login local exitoso para:', username);
+                    currentUser = validCredentials[username].user;
                     showSuccess('login-success', '✅ Iniciando sesión...');
+                    
+                    setTimeout(() => {
+                        showMainApp();
+                        updateUserInterface();
+                        loadTodayData();
+                        updateFirebaseStatus('connected', `✅ Sesión local activa: ${currentUser.name}`);
+                    }, 1000);
                 } else {
-                    console.error('❌ Login falló:', result.error);
-                    showError('login-error', `❌ ${result.error}`);
+                    console.error('❌ Credenciales incorrectas');
+                    showError('login-error', '❌ Usuario o contraseña incorrectos');
                 }
-            } catch (error) {
-                showLoading('login-loading', false);
-                console.error('❌ Error crítico en handleLogin:', error);
-                showError('login-error', `❌ Error crítico: ${error.message}`);
-            }
+            }, 800);
         }
 
         async function handleRegister(e) {
@@ -1288,94 +1343,69 @@
         }
 
         async function handleLogout() {
-            const result = await authService.logout();
-            if (result.success) {
-                console.log('✅ Logout exitoso');
-                // El listener onAuthChange se encargará de mostrar la pantalla de login
-            } else {
-                console.error('❌ Error en logout:', result.error);
-            }
+            console.log('🔄 Cerrando sesión local...');
+            
+            // Limpiar usuario actual
+            currentUser = null;
+            
+            // Mostrar pantalla de login
+            showAuthScreen();
+            
+            // Actualizar estado
+            updateFirebaseStatus('connected', '✅ Sesión cerrada - Login local disponible');
+            
+            console.log('✅ Logout local exitoso');
         }
 
         async function loginDemo(role) {
-            console.log(`🔄 Iniciando login demo para rol: ${role}`);
+            console.log(`🔄 Iniciando login demo local para rol: ${role}`);
             
-            // Verificar que authService esté disponible
-            if (!authService) {
-                showError('login-error', 'Sistema de autenticación no está listo. Recarga la página.');
-                return;
-            }
-
             // Limpiar errores previos
             document.getElementById('login-error').style.display = 'none';
             document.getElementById('login-success').style.display = 'none';
             showLoading('login-loading', true);
 
-            try {
-                // Credenciales de demostración
-                const demoCredentials = {
+            // Simular tiempo de carga
+            setTimeout(() => {
+                // Credenciales locales de demostración
+                const demoUsers = {
                     admin: {
+                        uid: 'local-admin-001',
+                        name: 'Administrador Demo',
                         email: 'admin@sanignacio.edu',
-                        password: 'admin123'
+                        role: 'admin',
+                        department: 'direccion',
+                        school_id: 'colegio-san-ignacio-123',
+                        school_name: 'Colegio San Ignacio'
                     },
                     user: {
-                        email: 'docente@sanignacio.edu',
-                        password: 'docente123'
+                        uid: 'local-user-001',
+                        name: 'Usuario Demo',
+                        email: 'user@sanignacio.edu',
+                        role: 'user',
+                        department: 'primaria',
+                        school_id: 'colegio-san-ignacio-123',
+                        school_name: 'Colegio San Ignacio'
                     }
                 };
 
-                const credentials = demoCredentials[role];
-                if (!credentials) {
-                    showLoading('login-loading', false);
-                    showError('login-error', 'Credenciales de demostración no válidas');
-                    return;
-                }
-
-                console.log(`🔄 Intentando login demo para ${role}:`, credentials.email);
-
-                const result = await authService.login(credentials.email, credentials.password);
-                
-                if (result.success) {
-                    showLoading('login-loading', false);
-                    console.log('✅ Login demo exitoso:', result.user);
-                    showSuccess('login-success', `✅ Acceso demo como ${role === 'admin' ? 'Administrador' : 'Docente'}`);
-                } else {
-                    console.log('❌ Login demo falló, intentando crear usuario:', result.error);
-                    
-                    // Si el usuario demo no existe, intentar crearlo
-                    if (result.error.includes('Usuario no encontrado') || 
-                        result.error.includes('user-not-found') || 
-                        result.error.includes('Perfil de usuario no encontrado')) {
-                        
-                        console.log('🔄 Creando usuario demo...');
-                        
-                        const userData = {
-                            name: role === 'admin' ? 'Administrador Demo' : 'Docente Demo',
-                            role: role === 'admin' ? 'admin' : 'user',
-                            department: role === 'admin' ? 'direccion' : 'primaria'
-                        };
-
-                        const registerResult = await authService.register(credentials.email, credentials.password, userData);
-                        
-                        showLoading('login-loading', false);
-
-                        if (registerResult.success) {
-                            console.log('✅ Usuario demo creado y logueado:', registerResult.user);
-                            showSuccess('login-success', `✅ Usuario demo creado. Accediendo como ${role === 'admin' ? 'Administrador' : 'Docente'}...`);
-                        } else {
-                            console.error('❌ Error creando usuario demo:', registerResult.error);
-                            showError('login-error', `❌ Error creando usuario demo: ${registerResult.error}`);
-                        }
-                    } else {
-                        showLoading('login-loading', false);
-                        showError('login-error', `❌ ${result.error}`);
-                    }
-                }
-            } catch (error) {
                 showLoading('login-loading', false);
-                console.error('❌ Error crítico en loginDemo:', error);
-                showError('login-error', `❌ Error crítico en demo: ${error.message}`);
-            }
+
+                if (demoUsers[role]) {
+                    console.log('✅ Login demo local exitoso:', role);
+                    currentUser = demoUsers[role];
+                    showSuccess('login-success', `✅ Acceso demo como ${role === 'admin' ? 'Administrador' : 'Usuario'}`);
+                    
+                    setTimeout(() => {
+                        showMainApp();
+                        updateUserInterface();
+                        loadTodayData();
+                        updateFirebaseStatus('connected', `✅ Sesión demo local: ${currentUser.name}`);
+                    }, 1000);
+                } else {
+                    showError('login-error', 'Rol de demostración no válido');
+                }
+            }, 600);
         }
 
         function setTodayDate() {
@@ -1962,6 +1992,58 @@
             }
         }
 
+        // Función para probar guardado de asistencia
+        async function testAttendanceSave() {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.innerHTML = '🔄 Probando guardado de asistencia...';
+
+            try {
+                if (!attendanceService) {
+                    throw new Error('AttendanceService no está inicializado');
+                }
+
+                // Datos de prueba
+                const testAttendance = {
+                    student_name: 'Estudiante de Prueba',
+                    student_id: 'TEST-001',
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'presente',
+                    teacher_id: 'test-teacher',
+                    teacher_name: 'Profesor de Prueba',
+                    school_id: 'colegio-san-ignacio-123',
+                    notes: 'Prueba de guardado desde diagnóstico'
+                };
+
+                console.log('💾 Probando guardado con datos:', testAttendance);
+
+                const result = await attendanceService.createIndividualAttendance(testAttendance);
+
+                if (result.success) {
+                    debugInfo.innerHTML = `
+                        ✅ <strong>Guardado exitoso!</strong><br>
+                        📄 ID del documento: ${result.id}<br>
+                        👤 Estudiante: ${testAttendance.student_name}<br>
+                        📅 Fecha: ${testAttendance.date}<br>
+                        ✅ Estado: ${testAttendance.status}
+                    `;
+                    updateFirebaseStatus('connected', '✅ Guardado de asistencia funcionando');
+                } else {
+                    throw new Error(result.error);
+                }
+
+            } catch (error) {
+                console.error('❌ Error en prueba de guardado:', error);
+                debugInfo.innerHTML = `
+                    ❌ <strong>Error de guardado:</strong><br>
+                    🚨 ${error.message}<br>
+                    🔍 AttendanceService: ${attendanceService ? 'Disponible' : 'No disponible'}<br>
+                    📊 Firebase DB: ${window.firebaseDb ? 'Disponible' : 'No disponible'}<br>
+                    🛠️ Módulos: ${window.firebaseModules ? 'Disponible' : 'No disponible'}
+                `;
+                updateFirebaseStatus('error', '❌ Error en guardado de asistencia');
+            }
+        }
+
         // Actualizar información de diagnóstico al cargar
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
@@ -1975,5 +2057,5 @@
             }, 1000);
         });
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995c4badd0d7c9df',t:'MTc2MTY3NDAzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996dc5f3b6dba64c',t:'MTc2MTg1NzMwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
