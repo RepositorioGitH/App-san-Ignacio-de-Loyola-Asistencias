@@ -124,11 +124,13 @@
       </div>
       <div><label for="seccion" class="block text-sm font-medium text-gray-700 mb-1">Sección</label> <select id="seccion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required> <option value="">Seleccionar</option> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> </select>
       </div>
-      <div><label for="totalVarones" class="block text-sm font-medium text-gray-700 mb-1">Total Varones</label> <input type="number" id="totalVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      <div><label for="totalVarones" class="block text-sm font-medium text-gray-700 mb-1">Presentes Varones</label> <input type="number" id="totalVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div><label for="totalMujeres" class="block text-sm font-medium text-gray-700 mb-1">Total Mujeres</label> <input type="number" id="totalMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      <div><label for="totalMujeres" class="block text-sm font-medium text-gray-700 mb-1">Presentes Mujeres</label> <input type="number" id="totalMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div><label for="capacidadAula" class="block text-sm font-medium text-gray-700 mb-1">Capacidad del Aula</label> <input type="number" id="capacidadAula" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      <div><label for="ausentesVarones" class="block text-sm font-medium text-gray-700 mb-1">Ausentes Varones</label> <input type="number" id="ausentesVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      </div>
+      <div><label for="ausentesMujeres" class="block text-sm font-medium text-gray-700 mb-1">Ausentes Mujeres</label> <input type="number" id="ausentesMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
       <div class="flex items-end"><button type="submit" id="submitBtn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 font-medium flex items-center justify-center"> <span id="submitText">Registrar</span>
         <div id="submitSpinner" class="loading-spinner ml-2 hidden"></div></button>
@@ -162,10 +164,11 @@
         <tr>
          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grado</th>
          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sección</th>
-         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Varones</th>
-         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mujeres</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Presentes V</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Presentes M</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ausentes V</th>
+         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ausentes M</th>
          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidad</th>
          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -193,11 +196,13 @@
       </div>
       <div><label for="editSeccion" class="block text-sm font-medium text-gray-700 mb-1">Sección</label> <select id="editSeccion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required> <option value="A">Sección A</option> <option value="B">Sección B</option> <option value="C">Sección C</option> </select>
       </div>
-      <div><label for="editVarones" class="block text-sm font-medium text-gray-700 mb-1">Total Varones</label> <input type="number" id="editVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      <div><label for="editVarones" class="block text-sm font-medium text-gray-700 mb-1">Presentes Varones</label> <input type="number" id="editVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div><label for="editMujeres" class="block text-sm font-medium text-gray-700 mb-1">Total Mujeres</label> <input type="number" id="editMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      <div><label for="editMujeres" class="block text-sm font-medium text-gray-700 mb-1">Presentes Mujeres</label> <input type="number" id="editMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
-      <div><label for="editCapacidad" class="block text-sm font-medium text-gray-700 mb-1">Capacidad del Aula</label> <input type="number" id="editCapacidad" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      <div><label for="editAusentesVarones" class="block text-sm font-medium text-gray-700 mb-1">Ausentes Varones</label> <input type="number" id="editAusentesVarones" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+      </div>
+      <div><label for="editAusentesMujeres" class="block text-sm font-medium text-gray-700 mb-1">Ausentes Mujeres</label> <input type="number" id="editAusentesMujeres" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
       </div>
       <div class="flex justify-end space-x-3 pt-4"><button type="button" id="cancelEdit" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition duration-200"> Cancelar </button> <button type="submit" id="saveEdit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 flex items-center"> <span id="saveEditText">Guardar</span>
         <div id="saveEditSpinner" class="loading-spinner ml-2 hidden"></div></button>
@@ -361,7 +366,7 @@
             
             // Simple authentication (in real app, this would be server-side)
             if ((userType === 'admin' && username === 'admin' && password === 'admin123') ||
-                (userType === 'docente' && username === 'docente' && password === 'docente123')) {
+                (userType === 'docente' && username === 'Roberto Rivas' && password === 'docente123')) {
                 
                 currentUser = {
                     type: userType,
@@ -410,7 +415,8 @@
             const seccion = document.getElementById('seccion').value;
             const totalVarones = parseInt(document.getElementById('totalVarones').value);
             const totalMujeres = parseInt(document.getElementById('totalMujeres').value);
-            const capacidadAula = parseInt(document.getElementById('capacidadAula').value);
+            const ausentesVarones = parseInt(document.getElementById('ausentesVarones').value);
+            const ausentesMujeres = parseInt(document.getElementById('ausentesMujeres').value);
             
             const now = new Date();
             const record = {
@@ -419,7 +425,8 @@
                 seccion: seccion,
                 total_varones: totalVarones,
                 total_mujeres: totalMujeres,
-                capacidad_aula: capacidadAula,
+                ausentes_varones: ausentesVarones,
+                ausentes_mujeres: ausentesMujeres,
                 docente: currentUser.username,
                 timestamp: now.getTime()
             };
@@ -478,21 +485,21 @@
                 });
                 
                 const totalPresentes = record.total_varones + record.total_mujeres;
-                const capacidad = record.capacidad_aula || 0;
-                const ocupacionPorcentaje = capacidad > 0 ? Math.round((totalPresentes / capacidad) * 100) : 0;
-                const ocupacionColor = ocupacionPorcentaje > 90 ? 'text-red-600' : ocupacionPorcentaje > 75 ? 'text-yellow-600' : 'text-green-600';
+                const totalAusentes = (record.ausentes_varones || 0) + (record.ausentes_mujeres || 0);
+                const totalGeneral = totalPresentes + totalAusentes;
                 
                 return `
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.grado}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.seccion}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.total_varones}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.total_mujeres}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${totalPresentes}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">${record.total_varones}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">${record.total_mujeres}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">${record.ausentes_varones || 0}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">${record.ausentes_mujeres || 0}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             <div class="flex flex-col">
-                                <span class="font-medium">${capacidad}</span>
-                                <span class="text-xs ${ocupacionColor}">${ocupacionPorcentaje}% ocupado</span>
+                                <span class="text-green-600">${totalPresentes} presentes</span>
+                                <span class="text-red-600 text-xs">${totalAusentes} ausentes</span>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.docente}</td>
@@ -525,7 +532,8 @@
             document.getElementById('editSeccion').value = record.seccion;
             document.getElementById('editVarones').value = record.total_varones;
             document.getElementById('editMujeres').value = record.total_mujeres;
-            document.getElementById('editCapacidad').value = record.capacidad_aula || '';
+            document.getElementById('editAusentesVarones').value = record.ausentes_varones || 0;
+            document.getElementById('editAusentesMujeres').value = record.ausentes_mujeres || 0;
             
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -556,7 +564,8 @@
                 seccion: document.getElementById('editSeccion').value,
                 total_varones: parseInt(document.getElementById('editVarones').value),
                 total_mujeres: parseInt(document.getElementById('editMujeres').value),
-                capacidad_aula: parseInt(document.getElementById('editCapacidad').value)
+                ausentes_varones: parseInt(document.getElementById('editAusentesVarones').value),
+                ausentes_mujeres: parseInt(document.getElementById('editAusentesMujeres').value)
             };
             
             const success = await updateAttendanceRecord(editingRecord.id, updatedData);
@@ -648,8 +657,8 @@
             let pdfContent = `REPORTE DE ASISTENCIA DIARIA\n`;
             pdfContent += `Colegio San Ignacio de Loyola\n`;
             pdfContent += `Fecha: ${new Date().toLocaleDateString('es-ES')}\n\n`;
-            pdfContent += `GRADO\tSECCIÓN\tVARONES\tMUJERES\tTOTAL\tCAPACIDAD\tOCUPACIÓN\tDOCENTE\tHORA\n`;
-            pdfContent += `${'='.repeat(100)}\n`;
+            pdfContent += `GRADO\tSECCIÓN\tPRES.V\tPRES.M\tAUS.V\tAUS.M\tTOTAL PRES.\tTOTAL AUS.\tDOCENTE\tHORA\n`;
+            pdfContent += `${'='.repeat(120)}\n`;
             
             todayRecords.forEach(record => {
                 const time = new Date(record.timestamp).toLocaleTimeString('es-ES', {
@@ -657,19 +666,23 @@
                     minute: '2-digit'
                 });
                 const totalPresentes = record.total_varones + record.total_mujeres;
-                const capacidad = record.capacidad_aula || 0;
-                const ocupacion = capacidad > 0 ? Math.round((totalPresentes / capacidad) * 100) + '%' : 'N/A';
-                pdfContent += `${record.grado}\t${record.seccion}\t${record.total_varones}\t${record.total_mujeres}\t${totalPresentes}\t${capacidad}\t${ocupacion}\t${record.docente}\t${time}\n`;
+                const totalAusentes = (record.ausentes_varones || 0) + (record.ausentes_mujeres || 0);
+                pdfContent += `${record.grado}\t${record.seccion}\t${record.total_varones}\t${record.total_mujeres}\t${record.ausentes_varones || 0}\t${record.ausentes_mujeres || 0}\t${totalPresentes}\t${totalAusentes}\t${record.docente}\t${time}\n`;
             });
             
             // Calculate totals
-            const totalVarones = todayRecords.reduce((sum, record) => sum + record.total_varones, 0);
-            const totalMujeres = todayRecords.reduce((sum, record) => sum + record.total_mujeres, 0);
+            const totalVaronesPresentes = todayRecords.reduce((sum, record) => sum + record.total_varones, 0);
+            const totalMujeresPresentes = todayRecords.reduce((sum, record) => sum + record.total_mujeres, 0);
+            const totalVaronesAusentes = todayRecords.reduce((sum, record) => sum + (record.ausentes_varones || 0), 0);
+            const totalMujeresAusentes = todayRecords.reduce((sum, record) => sum + (record.ausentes_mujeres || 0), 0);
             
             pdfContent += `\nRESUMEN:\n`;
-            pdfContent += `Total Varones: ${totalVarones}\n`;
-            pdfContent += `Total Mujeres: ${totalMujeres}\n`;
-            pdfContent += `Total General: ${totalVarones + totalMujeres}\n`;
+            pdfContent += `Varones Presentes: ${totalVaronesPresentes}\n`;
+            pdfContent += `Mujeres Presentes: ${totalMujeresPresentes}\n`;
+            pdfContent += `Varones Ausentes: ${totalVaronesAusentes}\n`;
+            pdfContent += `Mujeres Ausentes: ${totalMujeresAusentes}\n`;
+            pdfContent += `Total Presentes: ${totalVaronesPresentes + totalMujeresPresentes}\n`;
+            pdfContent += `Total Ausentes: ${totalVaronesAusentes + totalMujeresAusentes}\n`;
             
             // Download as text file (simulating PDF)
             const blob = new Blob([pdfContent], { type: 'text/plain' });
@@ -696,7 +709,7 @@
             }
             
             // Create CSV content
-            let csvContent = 'Grado,Sección,Varones,Mujeres,Total,Capacidad,Ocupación,Docente,Hora\n';
+            let csvContent = 'Grado,Sección,Presentes Varones,Presentes Mujeres,Ausentes Varones,Ausentes Mujeres,Total Presentes,Total Ausentes,Docente,Hora\n';
             
             todayRecords.forEach(record => {
                 const time = new Date(record.timestamp).toLocaleTimeString('es-ES', {
@@ -704,9 +717,8 @@
                     minute: '2-digit'
                 });
                 const totalPresentes = record.total_varones + record.total_mujeres;
-                const capacidad = record.capacidad_aula || 0;
-                const ocupacion = capacidad > 0 ? Math.round((totalPresentes / capacidad) * 100) + '%' : 'N/A';
-                csvContent += `${record.grado},${record.seccion},${record.total_varones},${record.total_mujeres},${totalPresentes},${capacidad},${ocupacion},${record.docente},${time}\n`;
+                const totalAusentes = (record.ausentes_varones || 0) + (record.ausentes_mujeres || 0);
+                csvContent += `${record.grado},${record.seccion},${record.total_varones},${record.total_mujeres},${record.ausentes_varones || 0},${record.ausentes_mujeres || 0},${totalPresentes},${totalAusentes},${record.docente},${time}\n`;
             });
             
             // Download CSV
@@ -744,5 +756,5 @@
         // Initialize app when page loads
         document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996dfac3d2f5d955',t:'MTc2MTg1OTQ2Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996e0efcc04e5c6d',t:'MTc2MTg2MDI5NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
