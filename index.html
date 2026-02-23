@@ -44,23 +44,15 @@
    <main class="flex-1 p-4 max-w-4xl mx-auto w-full"><!-- Login Panel -->
     <section id="panel-login" class="animate-fade">
      <div class="bg-white rounded-xl p-6 card-shadow max-w-md mx-auto mt-10">
-      <h2 class="text-2xl font-bold text-center text-slate-700 mb-6">🔐 Configurar Firebase</h2>
-      <p class="text-sm text-slate-600 mb-4 text-center">Ingrese sus credenciales de Firebase para conectar con la nube</p>
-      <form id="firebase-config-form" class="space-y-4">
-       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">API Key</label> <input type="password" id="firebase-api-key" placeholder="Tu API Key" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
+      <h2 class="text-2xl font-bold text-center text-slate-700 mb-2">🔐 Iniciar Sesión</h2>
+      <p class="text-center text-sm text-slate-500 mb-6">Usuario: <strong>admin</strong> | Contraseña: <strong>1234</strong></p>
+      <form id="login-form" class="space-y-4">
+       <div><label class="block text-sm font-semibold text-slate-700 mb-2">👤 Usuario</label> <input type="text" id="login-user" placeholder="admin" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
        </div>
-       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Project ID</label> <input type="text" id="firebase-project-id" placeholder="tu-project-id" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
-       </div>
-       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Auth Domain</label> <input type="text" id="firebase-auth-domain" placeholder="tu-project.firebaseapp.com" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
-       </div>
-       <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p class="text-xs text-blue-700">💡 <strong>Obtén tus credenciales:</strong> Ve a Firebase Console → Proyecto → Configuración → Credenciales web</p>
-       </div><button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-lg"> 🔗 Conectar con Firebase </button>
+       <div><label class="block text-sm font-semibold text-slate-700 mb-2">🔑 Contraseña</label> <input type="password" id="login-pass" placeholder="1234" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
+       </div><button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-lg"> ✅ Entrar al Sistema </button>
       </form>
-      <p id="firebase-message" class="text-center text-sm mt-4 hidden"></p>
+      <p id="login-message" class="text-center text-sm mt-4 hidden"></p>
      </div>
     </section><!-- Main App (hidden until connected) -->
     <div id="app-content" class="hidden"><!-- Register Tab -->
@@ -155,73 +147,64 @@
    </footer>
   </div>
   <script>
-    // ===== FIREBASE CONFIGURATION =====
-    // Aquí van tus credenciales de Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxxx", // CAMBIA ESTO
-      projectId: "tu-proyecto-id", // CAMBIA ESTO
-      authDomain: "tu-proyecto.firebaseapp.com", // CAMBIA ESTO
-      storageBucket: "tu-proyecto.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abc123"
-    };
-
-    let db = null;
-    let isFirebaseConnected = false;
-
-    // Inicializar Firebase al cargar
-    try {
-      const app = firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      isFirebaseConnected = true;
-    } catch (error) {
-      console.error('Firebase error:', error);
-    }
-
     // ===== LOGIN LOCAL =====
-    const VALID_USER = 'admin';
-    const VALID_PASSWORD = '1234';
+    let isLoggedIn = false;
 
     // Manejo del formulario de login
-    document.getElementById('firebase-config-form').addEventListener('submit', (e) => {
+    document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
       
-      const username = document.getElementById('firebase-api-key').value;
-      const password = document.getElementById('firebase-project-id').value;
+      const user = document.getElementById('login-user').value;
+      const pass = document.getElementById('login-pass').value;
       
-      if (username === VALID_USER && password === VALID_PASSWORD) {
-        showFirebaseMessage('✅ ¡Acceso concedido!', 'success');
-        
-        // Guardar sesión
-        localStorage.setItem('userSession', 'true');
+      // Validar credenciales locales
+      if (user === 'admin' && pass === '1234') {
+        isLoggedIn = true;
+        sessionStorage.setItem('loggedIn', 'true');
         
         // Ocultar login y mostrar app
-        setTimeout(() => {
-          document.getElementById('panel-login').classList.add('hidden');
-          document.getElementById('app-content').classList.remove('hidden');
-          loadAttendanceRecords();
-        }, 500);
+        document.getElementById('panel-login').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        
+        // Cargar datos
+        loadAttendanceRecords();
       } else {
-        showFirebaseMessage('❌ Usuario o contraseña incorrectos', 'error');
+        const msg = document.getElementById('login-message');
+        msg.textContent = '❌ Usuario o contraseña incorrectos';
+        msg.className = 'text-center text-sm font-semibold py-2 rounded-lg text-red-600 bg-red-50';
+        msg.classList.remove('hidden');
+        
+        setTimeout(() => msg.classList.add('hidden'), 3000);
       }
     });
 
-    function showFirebaseMessage(text, type) {
-      const msg = document.getElementById('firebase-message');
-      msg.textContent = text;
-      msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
-        (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
-      msg.classList.remove('hidden');
-      if (type !== 'error') {
-        setTimeout(() => msg.classList.add('hidden'), 3000);
-      }
-    }
-
-    // Verificar si ya hay sesión activa
-    if (localStorage.getItem('userSession') === 'true' && isFirebaseConnected) {
+    // Verificar si ya está logueado
+    if (sessionStorage.getItem('loggedIn') === 'true') {
+      isLoggedIn = true;
       document.getElementById('panel-login').classList.add('hidden');
       document.getElementById('app-content').classList.remove('hidden');
       loadAttendanceRecords();
+    }
+
+    // ===== ALMACENAMIENTO LOCAL (Sin Firebase) =====
+    function loadAttendanceRecords() {
+      const saved = localStorage.getItem('attendanceRecords');
+      attendanceRecords = saved ? JSON.parse(saved) : [];
+      renderHistory();
+      updateStats();
+      updateRecordCount();
+    }
+
+    function saveAttendanceRecord(record) {
+      attendanceRecords.push(record);
+      localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+      return true;
+    }
+
+    function deleteAttendanceRecord(docId) {
+      attendanceRecords = attendanceRecords.filter(r => r.id !== docId);
+      localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+      return true;
     }
 
     // ===== LÓGICA DE LA APLICACIÓN =====
@@ -282,58 +265,6 @@
       });
     }
 
-    // Cargar registros de Firestore
-    async function loadAttendanceRecords() {
-      if (!db) return;
-      
-      try {
-        const snapshot = await db.collection('attendance').orderBy('created_at', 'desc').limit(1000).get();
-        attendanceRecords = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        renderHistory();
-        updateStats();
-        updateRecordCount();
-      } catch (error) {
-        console.error('Error loading records:', error);
-      }
-    }
-
-    // Guardar registro en Firestore
-    async function saveAttendanceRecord(record) {
-      if (!db || !isFirebaseConnected) {
-        showMessage('No conectado a Firebase', 'error');
-        return false;
-      }
-      
-      try {
-        await db.collection('attendance').add(record);
-        await loadAttendanceRecords();
-        return true;
-      } catch (error) {
-        console.error('Error saving record:', error);
-        return false;
-      }
-    }
-
-    // Eliminar registro de Firestore
-    async function deleteAttendanceRecord(docId) {
-      if (!db || !isFirebaseConnected) {
-        showMessage('No conectado a Firebase', 'error');
-        return false;
-      }
-      
-      try {
-        await db.collection('attendance').doc(docId).delete();
-        await loadAttendanceRecords();
-        return true;
-      } catch (error) {
-        console.error('Error deleting record:', error);
-        return false;
-      }
-    }
-
     // Set today's date
     document.getElementById('input-date').valueAsDate = new Date();
 
@@ -383,7 +314,7 @@
     }
 
     // Form Submission
-    document.getElementById('attendance-form').addEventListener('submit', async (e) => {
+    document.getElementById('attendance-form').addEventListener('submit', (e) => {
       e.preventDefault();
       
       if (isSubmitting) return;
@@ -417,9 +348,10 @@
         created_at: new Date().toISOString()
       };
       
-      const success = await saveAttendanceRecord(record);
+      const success = saveAttendanceRecord(record);
       if (success) {
-        showMessage('¡Asistencia guardada correctamente en Firebase!', 'success');
+        showMessage('¡Asistencia guardada correctamente!', 'success');
+        loadAttendanceRecords();
         resetForm();
       } else {
         showMessage('Error al guardar. Intente nuevamente.', 'error');
@@ -524,7 +456,7 @@
       renderHistory();
     }
 
-    async function deleteRecord(docId) {
+    function deleteRecord(docId) {
       const record = attendanceRecords.find(r => r.id === docId);
       if (!record) return;
       
@@ -535,8 +467,10 @@
           deleteBtn.disabled = true;
           deleteBtn.textContent = '⏳';
           
-          const success = await deleteAttendanceRecord(docId);
-          if (!success) {
+          const success = deleteAttendanceRecord(docId);
+          if (success) {
+            loadAttendanceRecords();
+          } else {
             deleteBtn.textContent = '🗑️';
             deleteBtn.disabled = false;
             deleteBtn.dataset.confirming = 'false';
@@ -682,5 +616,5 @@
       return date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d29e5f795421482',t:'MTc3MTg4MzAwMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d29f0e2a1071482',t:'MTc3MTg4MzQ0OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
