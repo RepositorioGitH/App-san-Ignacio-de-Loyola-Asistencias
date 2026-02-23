@@ -6,6 +6,10 @@
   <title>Registro de Asistencia Escolar</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Nunito', sans-serif; }
@@ -42,14 +46,16 @@
     <section id="panel-login" class="animate-fade">
      <div class="bg-white rounded-xl p-6 card-shadow max-w-md mx-auto mt-10">
       <h2 class="text-2xl font-bold text-center text-slate-700 mb-6">🔐 Iniciar Sesión</h2>
-      <p class="text-sm text-slate-600 mb-4 text-center">Ingrese sus credenciales para acceder al sistema</p>
       <form id="login-form" class="space-y-4">
        <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">👤 Usuario</label> <input type="text" id="login-username" placeholder="Usuario" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">👤 Usuario</label> <input type="text" id="login-user" placeholder="admin" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
        </div>
        <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">🔑 Contraseña</label> <input type="password" id="login-password" placeholder="Contraseña" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
-       </div><button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-lg"> ✅ Ingresar </button>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">🔑 Contraseña</label> <input type="password" id="login-password" placeholder="1234" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
+       </div>
+       <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p class="text-xs text-blue-700"><strong>Credenciales:</strong> Usuario: admin | Contraseña: 1234</p>
+       </div><button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-lg"> 🚀 Entrar </button>
       </form>
       <p id="login-message" class="text-center text-sm mt-4 hidden"></p>
      </div>
@@ -146,12 +152,95 @@
    </footer>
   </div>
   <script>
-    // ===== CONFIGURACIÓN DE CREDENCIALES =====
+    // ===== CONFIGURACIÓN FIREBASE =====
+    let db = null;
+    let isLoggedIn = false;
+    
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDP10R64OBBssfDatgWbawg7eWwoN_iLY0",
+      authDomain: "appatencioncliente.firebaseapp.com",
+      projectId: "appatencioncliente",
+      storageBucket: "appatencioncliente.firebasestorage.app",
+      messagingSenderId: ".",
+      appId: "1:.:web:77d82243374df17d0db221",
+      measurementId: "G-GXVZ1X008W"
+    };
+
+    // Login Local Simple
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const user = document.getElementById('login-user').value;
+      const pass = document.getElementById('login-password').value;
+      
+      if (user === 'admin' && pass === '1234') {
+        isLoggedIn = true;
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        // Ocultar login y mostrar app
+        document.getElementById('panel-login').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        
+        // Inicializar Firebase
+        initializeFirebase();
+        loadAttendanceRecords();
+      } else {
+        showLoginMessage('❌ Usuario o contraseña incorrectos', 'error');
+      }
+    });
+
+    function showLoginMessage(text, type) {
+      const msg = document.getElementById('login-message');
+      msg.textContent = text;
+      msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
+        (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
+      msg.classList.remove('hidden');
+      if (type !== 'error') {
+        setTimeout(() => msg.classList.add('hidden'), 3000);
+      }
+    }
+
+    // Verificar si ya estaba logueado
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      isLoggedIn = true;
+      document.getElementById('panel-login').classList.add('hidden');
+      document.getElementById('app-content').classList.remove('hidden');
+      initializeFirebase();
+      loadAttendanceRecords();
+    }
+
+    function initializeFirebase() {
+      try {
+        // Inicializar Firebase
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        
+        db = firebase.firestore();
+        
+        // Probar conexión escribiendo un test
+        const testRef = db.collection('_test').doc('connection');
+        testRef.set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() })
+          .then(() => {
+            console.log('✅ Firebase conectado correctamente');
+            // Limpiar el test
+            testRef.delete().catch(e => console.log('Test cleanup:', e));
+          })
+          .catch(error => {
+            console.error('❌ Error Firebase:', error);
+            showMessage('Error: Verifica tu configuración de Firebase', 'error');
+          });
+      } catch (error) {
+        console.error('Error inicializando Firebase:', error);
+        showMessage('Error al inicializar Firebase', 'error');
+      }
+    }
+
+    // ===== LÓGICA DE LA APLICACIÓN =====
     const defaultConfig = {
       app_title: 'Registro de Asistencia Escolar',
       institution_name: 'Mi Institución Educativa',
-      admin_username: 'admin',
-      admin_password: '1234',
       primary_color: '#2563eb',
       secondary_color: '#1e293b',
       accent_color: '#10b981',
@@ -159,7 +248,6 @@
       background_color: '#f1f5f9'
     };
 
-    let isLoggedIn = false;
     let attendanceRecords = [];
     let selectedLevel = '';
     let isSubmitting = false;
@@ -202,71 +290,82 @@
         }),
         mapToEditPanelValues: (config) => new Map([
           ['app_title', config.app_title || defaultConfig.app_title],
-          ['institution_name', config.institution_name || defaultConfig.institution_name],
-          ['admin_username', config.admin_username || defaultConfig.admin_username],
-          ['admin_password', config.admin_password || defaultConfig.admin_password]
+          ['institution_name', config.institution_name || defaultConfig.institution_name]
         ])
       });
     }
 
-    // ===== LOGIN =====
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-      e.preventDefault();
+    // Cargar registros de Firestore
+    async function loadAttendanceRecords() {
+      if (!db) {
+        console.log('Firebase no inicializado aún');
+        return;
+      }
       
-      const username = document.getElementById('login-username').value;
-      const password = document.getElementById('login-password').value;
-      
-      const configUsername = window.elementSdk ? window.elementSdk.config.admin_username : defaultConfig.admin_username;
-      const configPassword = window.elementSdk ? window.elementSdk.config.admin_password : defaultConfig.admin_password;
-      
-      if (username === configUsername && password === configPassword) {
-        isLoggedIn = true;
-        showLoginMessage('✅ ¡Acceso permitido!', 'success');
+      try {
+        const snapshot = await db.collection('attendance')
+          .orderBy('created_at', 'desc')
+          .limit(1000)
+          .get();
         
-        setTimeout(() => {
-          document.getElementById('panel-login').classList.add('hidden');
-          document.getElementById('app-content').classList.remove('hidden');
-          loadAttendanceRecords();
-        }, 500);
-      } else {
-        showLoginMessage('❌ Usuario o contraseña incorrecta', 'error');
-        document.getElementById('login-username').value = '';
-        document.getElementById('login-password').value = '';
-      }
-    });
-
-    function showLoginMessage(text, type) {
-      const msg = document.getElementById('login-message');
-      msg.textContent = text;
-      msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
-        (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
-      msg.classList.remove('hidden');
-      if (type !== 'error') {
-        setTimeout(() => msg.classList.add('hidden'), 3000);
+        attendanceRecords = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        console.log('✅ Registros cargados:', attendanceRecords.length);
+        renderHistory();
+        updateStats();
+        updateRecordCount();
+      } catch (error) {
+        console.error('Error cargando registros:', error);
       }
     }
 
-    // ===== ALMACENAMIENTO LOCAL =====
-    function saveAttendanceRecord(record) {
-      attendanceRecords.push(record);
-      localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
-      renderHistory();
-      updateStats();
-      updateRecordCount();
+    // Guardar registro en Firestore
+    async function saveAttendanceRecord(record) {
+      if (!db) {
+        showMessage('Firebase no conectado', 'error');
+        return false;
+      }
+      
+      try {
+        console.log('Guardando registro:', record);
+        
+        const docRef = await db.collection('attendance').add({
+          ...record,
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('✅ Registro guardado con ID:', docRef.id);
+        
+        // Recargar después de guardar
+        setTimeout(() => loadAttendanceRecords(), 500);
+        return true;
+      } catch (error) {
+        console.error('Error guardando:', error);
+        showMessage('Error al guardar: ' + error.message, 'error');
+        return false;
+      }
     }
 
-    function loadAttendanceRecords() {
-      const saved = localStorage.getItem('attendanceRecords');
-      attendanceRecords = saved ? JSON.parse(saved) : [];
-      renderHistory();
-      updateStats();
-      updateRecordCount();
-    }
-
-    function deleteAttendanceRecord(index) {
-      attendanceRecords.splice(index, 1);
-      localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
-      loadAttendanceRecords();
+    // Eliminar registro de Firestore
+    async function deleteAttendanceRecord(docId) {
+      if (!db) {
+        showMessage('Firebase no conectado', 'error');
+        return false;
+      }
+      
+      try {
+        await db.collection('attendance').doc(docId).delete();
+        console.log('✅ Registro eliminado:', docId);
+        loadAttendanceRecords();
+        return true;
+      } catch (error) {
+        console.error('Error eliminando:', error);
+        showMessage('Error al eliminar', 'error');
+        return false;
+      }
     }
 
     // Set today's date
@@ -339,7 +438,6 @@
       submitBtn.disabled = true;
       
       const record = {
-        id: Date.now().toString(),
         date: document.getElementById('input-date').value,
         level: level,
         girls_present: parseInt(document.getElementById('girls-present').value) || 0,
@@ -348,13 +446,16 @@
         boys_absent: parseInt(document.getElementById('boys-absent').value) || 0,
         teacher_present: document.getElementById('teacher-present').checked,
         teacher_name: document.getElementById('teacher-name').value || '',
-        observations: document.getElementById('observations').value || '',
-        created_at: new Date().toISOString()
+        observations: document.getElementById('observations').value || ''
       };
       
-      saveAttendanceRecord(record);
-      showMessage('¡Asistencia guardada correctamente!', 'success');
-      resetForm();
+      const success = await saveAttendanceRecord(record);
+      if (success) {
+        showMessage('✅ ¡Asistencia guardada en Firebase!', 'success');
+        resetForm();
+      } else {
+        showMessage('❌ Error al guardar. Intente nuevamente.', 'error');
+      }
       
       submitBtn.textContent = '✅ Guardar Asistencia';
       submitBtn.disabled = false;
@@ -384,7 +485,7 @@
       msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
         (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
       msg.classList.remove('hidden');
-      setTimeout(() => msg.classList.add('hidden'), 3000);
+      setTimeout(() => msg.classList.add('hidden'), 4000);
     }
 
     // History Rendering
@@ -456,6 +557,9 @@
     }
 
     async function deleteRecord(docId) {
+      const record = attendanceRecords.find(r => r.id === docId);
+      if (!record) return;
+      
       const card = document.querySelector(`[data-id="${docId}"]`);
       if (card) {
         const deleteBtn = card.querySelector('button');
@@ -463,7 +567,12 @@
           deleteBtn.disabled = true;
           deleteBtn.textContent = '⏳';
           
-          deleteAttendanceRecord(docId);
+          const success = await deleteAttendanceRecord(docId);
+          if (!success) {
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.disabled = false;
+            deleteBtn.dataset.confirming = 'false';
+          }
         } else {
           deleteBtn.dataset.confirming = 'true';
           deleteBtn.textContent = '¿Seguro?';
@@ -480,9 +589,8 @@
       }
     }
 
-    function deleteRecordConfirm(index) {
-      const record = attendanceRecords[index];
-      deleteRecord(record.id);
+    function deleteRecordConfirm(docId) {
+      deleteRecord(docId);
     }
 
     function updateRecordCount() {
@@ -503,7 +611,7 @@
       document.getElementById('stat-attendance-rate').textContent = rate + '%';
     }
 
-    // Excel Report Generation
+    // Excel Report Generation (XLSX nativo)
     function generateExcelReport() {
       const fromDate = document.getElementById('report-from').value;
       const toDate = document.getElementById('report-to').value;
@@ -523,8 +631,13 @@
       // Sort by date
       filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
       
-      // Create CSV content
       const institution = document.getElementById('institution-text').textContent;
+      
+      // Crear workbook y worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([]);
+      
+      // Datos de encabezado
       const headers = [
         'Fecha',
         'Nivel',
@@ -541,14 +654,21 @@
         'Observaciones'
       ];
       
-      let csv = '\uFEFF'; // BOM for Excel
-      csv += institution + '\n';
-      csv += 'Reporte de Asistencia\n';
-      csv += 'Generado: ' + new Date().toLocaleDateString('es') + '\n\n';
-      csv += headers.join(',') + '\n';
+      // Información de título
+      ws['A1'] = { v: institution, t: 's' };
+      ws['A2'] = { v: 'Reporte de Asistencia', t: 's' };
+      ws['A3'] = { v: 'Generado: ' + new Date().toLocaleDateString('es'), t: 's' };
+      
+      // Agregar headers en fila 5
+      headers.forEach((header, idx) => {
+        const cellRef = XLSX.utils.encode_col(idx) + '5';
+        ws[cellRef] = { v: header, t: 's' };
+      });
       
       let totalGirlsP = 0, totalGirlsA = 0, totalBoysP = 0, totalBoysA = 0;
+      let rowIdx = 6;
       
+      // Agregar datos
       filtered.forEach(r => {
         const totalP = r.girls_present + r.boys_present;
         const totalA = r.girls_absent + r.boys_absent;
@@ -570,35 +690,64 @@
           totalP,
           totalA,
           total,
-          rate + '%',
-          '"' + (r.teacher_name || '').replace(/"/g, '""') + '"',
+          rate,
+          r.teacher_name || '',
           r.teacher_present ? 'Sí' : 'No',
-          '"' + (r.observations || '').replace(/"/g, '""') + '"'
+          r.observations || ''
         ];
-        csv += row.join(',') + '\n';
+        
+        row.forEach((val, idx) => {
+          const cellRef = XLSX.utils.encode_col(idx) + rowIdx;
+          ws[cellRef] = { 
+            v: val, 
+            t: idx === 9 ? 'n' : (typeof val === 'number' ? 'n' : 's')
+          };
+        });
+        
+        rowIdx++;
       });
       
-      // Summary row
+      // Fila de totales
       const grandTotalP = totalGirlsP + totalBoysP;
       const grandTotalA = totalGirlsA + totalBoysA;
       const grandTotal = grandTotalP + grandTotalA;
       const grandRate = grandTotal > 0 ? Math.round((grandTotalP / grandTotal) * 100) : 0;
       
-      csv += '\n';
-      csv += 'TOTALES,,' + totalGirlsP + ',' + totalGirlsA + ',' + totalBoysP + ',' + totalBoysA + ',' + grandTotalP + ',' + grandTotalA + ',' + grandTotal + ',' + grandRate + '%\n';
+      rowIdx++;
+      ws['A' + rowIdx] = { v: 'TOTALES', t: 's' };
+      ws['C' + rowIdx] = { v: totalGirlsP, t: 'n' };
+      ws['D' + rowIdx] = { v: totalGirlsA, t: 'n' };
+      ws['E' + rowIdx] = { v: totalBoysP, t: 'n' };
+      ws['F' + rowIdx] = { v: totalBoysA, t: 'n' };
+      ws['G' + rowIdx] = { v: grandTotalP, t: 'n' };
+      ws['H' + rowIdx] = { v: grandTotalA, t: 'n' };
+      ws['I' + rowIdx] = { v: grandTotal, t: 'n' };
+      ws['J' + rowIdx] = { v: grandRate, t: 'n' };
       
-      // Download
-      const blob = new Blob([csv], { type: 'text/xlsx;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Ajustar ancho de columnas
+      ws['!cols'] = [
+        { wch: 12 }, // Fecha
+        { wch: 15 }, // Nivel
+        { wch: 12 }, // Niñas Presentes
+        { wch: 12 }, // Niñas Ausentes
+        { wch: 12 }, // Niños Presentes
+        { wch: 12 }, // Niños Ausentes
+        { wch: 12 }, // Total Presentes
+        { wch: 12 }, // Total Ausentes
+        { wch: 15 }, // Total Estudiantes
+        { wch: 12 }, // % Asistencia
+        { wch: 15 }, // Docente
+        { wch: 15 }, // Docente Presente
+        { wch: 20 }  // Observaciones
+      ];
       
-      showMessage('¡Reporte descargado exitosamente!', 'success');
+      // Agregar worksheet al workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Asistencia');
+      
+      // Descargar archivo
+      XLSX.writeFile(wb, 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+      
+      showMessage('¡Reporte XLSX descargado exitosamente!', 'success');
     }
 
     function formatDate(dateStr) {
@@ -606,7 +755,5 @@
       return date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2a7d218151f498',t:'MTc3MTg4OTE5My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2aa4266581e1ca',t:'MTc3MTg5MDc5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
-
-
