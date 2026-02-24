@@ -512,7 +512,17 @@
                 <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">${record.level}</span>
                 <p class="text-sm text-slate-500 mt-1">📅 ${formatDate(record.date)}</p>
               </div>
-              <button onclick="deleteRecord('${record.id}')" class="text-red-400 hover:text-red-600 text-sm px-2 py-1 hover:bg-red-50 rounded transition-all">🗑️</button>
+              <div class="flex gap-2">
+                <button onclick="confirmDeleteRecord('${record.id}')" class="delete-btn text-red-400 hover:text-red-600 text-sm px-3 py-1 hover:bg-red-50 rounded transition-all font-semibold">🗑️ Eliminar</button>
+                <button onclick="cancelDeleteRecord('${record.id}')" class="cancel-delete hidden text-slate-500 hover:text-slate-700 text-sm px-2 py-1 rounded transition-all">✕</button>
+              </div>
+            </div>
+            <div class="confirm-delete hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-2">
+              <p class="text-xs text-red-700 font-semibold mb-2">¿Eliminar este registro?</p>
+              <div class="flex gap-2">
+                <button onclick="executeDeleteRecord('${record.id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded transition-all">Sí, eliminar</button>
+                <button onclick="cancelDeleteRecord('${record.id}')" class="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-700 text-xs font-bold py-1 px-2 rounded transition-all">Cancelar</button>
+              </div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs mt-3">
               <div class="bg-pink-50 p-2 rounded">
@@ -555,17 +565,44 @@
       renderHistory();
     }
 
-    async function deleteRecord(docId) {
+    function confirmDeleteRecord(docId) {
       const card = document.querySelector(`[data-id="${docId}"]`);
       if (card) {
-        const deleteBtn = card.querySelector('button');
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = '⏳';
+        const confirmDiv = card.querySelector('.confirm-delete');
+        const deleteBtn = card.querySelector('.delete-btn');
+        const cancelBtn = card.querySelector('.cancel-delete');
+        
+        confirmDiv.classList.remove('hidden');
+        deleteBtn.classList.add('hidden');
+        cancelBtn.classList.remove('hidden');
+      }
+    }
+
+    function cancelDeleteRecord(docId) {
+      const card = document.querySelector(`[data-id="${docId}"]`);
+      if (card) {
+        const confirmDiv = card.querySelector('.confirm-delete');
+        const deleteBtn = card.querySelector('.delete-btn');
+        const cancelBtn = card.querySelector('.cancel-delete');
+        
+        confirmDiv.classList.add('hidden');
+        deleteBtn.classList.remove('hidden');
+        cancelBtn.classList.add('hidden');
+      }
+    }
+
+    async function executeDeleteRecord(docId) {
+      const card = document.querySelector(`[data-id="${docId}"]`);
+      if (card) {
+        const confirmBtn = card.querySelector('.confirm-delete button:first-child');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '⏳ Eliminando...';
         
         const success = await deleteAttendanceRecord(docId);
+        
         if (!success) {
-          deleteBtn.textContent = '🗑️';
-          deleteBtn.disabled = false;
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Sí, eliminar';
         }
       }
     }
@@ -691,5 +728,5 @@
       return date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2b2089972a7b87',t:'MTc3MTg5NTg4Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2b1dcfe4c06dd1',t:'MTc3MTg5NTc3NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
