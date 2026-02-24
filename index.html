@@ -6,10 +6,6 @@
   <title>Registro de Asistencia Escolar</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="/_sdk/element_sdk.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Nunito', sans-serif; }
@@ -35,7 +31,7 @@
    <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 shadow-lg">
     <div class="max-w-4xl mx-auto">
      <h1 id="main-title" class="text-xl font-bold text-center">📚 Registro de Asistencia Escolar</h1>
-     <p id="institution-text" class="text-blue-100 text-sm text-center mt-1">Mi Institución Educativa</p>
+     <p id="institution-text" class="text-blue-100 text-sm text-center mt-1">San Ignacio de Loyola</p>
     </div>
    </header><!-- Navigation Tabs -->
    <nav class="bg-white shadow-sm sticky top-0 z-10">
@@ -46,16 +42,14 @@
     <section id="panel-login" class="animate-fade">
      <div class="bg-white rounded-xl p-6 card-shadow max-w-md mx-auto mt-10">
       <h2 class="text-2xl font-bold text-center text-slate-700 mb-6">🔐 Iniciar Sesión</h2>
+      <p class="text-sm text-slate-600 mb-4 text-center">Ingrese sus credenciales para acceder al sistema</p>
       <form id="login-form" class="space-y-4">
        <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">👤 Usuario</label> <input type="text" id="login-user" placeholder="admin" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">👤 Usuario</label> <input type="text" id="login-username" placeholder="Usuario" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
        </div>
        <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">🔑 Contraseña</label> <input type="password" id="login-password" placeholder="1234" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
-       </div>
-       <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p class="text-xs text-blue-700"><strong>Credenciales:</strong> Usuario: admin | Contraseña: 1234</p>
-       </div><button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-lg"> 🚀 Entrar </button>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">🔑 Contraseña</label> <input type="password" id="login-password" placeholder="Contraseña" class="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none" required>
+       </div><button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-lg"> ✅ Ingresar </button>
       </form>
       <p id="login-message" class="text-center text-sm mt-4 hidden"></p>
      </div>
@@ -152,95 +146,12 @@
    </footer>
   </div>
   <script>
-    // ===== CONFIGURACIÓN FIREBASE =====
-    let db = null;
-    let isLoggedIn = false;
-    
-    // Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyDP10R64OBBssfDatgWbawg7eWwoN_iLY0",
-      authDomain: "appatencioncliente.firebaseapp.com",
-      projectId: "appatencioncliente",
-      storageBucket: "appatencioncliente.firebasestorage.app",
-      messagingSenderId: ".",
-      appId: "1:.:web:77d82243374df17d0db221",
-      measurementId: "G-GXVZ1X008W"
-    };
-
-    // Login Local Simple
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      
-      const user = document.getElementById('login-user').value;
-      const pass = document.getElementById('login-password').value;
-      
-      if (user === 'admin' && pass === '1234') {
-        isLoggedIn = true;
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        // Ocultar login y mostrar app
-        document.getElementById('panel-login').classList.add('hidden');
-        document.getElementById('app-content').classList.remove('hidden');
-        
-        // Inicializar Firebase
-        initializeFirebase();
-        loadAttendanceRecords();
-      } else {
-        showLoginMessage('❌ Usuario o contraseña incorrectos', 'error');
-      }
-    });
-
-    function showLoginMessage(text, type) {
-      const msg = document.getElementById('login-message');
-      msg.textContent = text;
-      msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
-        (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
-      msg.classList.remove('hidden');
-      if (type !== 'error') {
-        setTimeout(() => msg.classList.add('hidden'), 3000);
-      }
-    }
-
-    // Verificar si ya estaba logueado
-    if (localStorage.getItem('isLoggedIn') === 'true') {
-      isLoggedIn = true;
-      document.getElementById('panel-login').classList.add('hidden');
-      document.getElementById('app-content').classList.remove('hidden');
-      initializeFirebase();
-      loadAttendanceRecords();
-    }
-
-    function initializeFirebase() {
-      try {
-        // Inicializar Firebase
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-        
-        db = firebase.firestore();
-        
-        // Probar conexión escribiendo un test
-        const testRef = db.collection('_test').doc('connection');
-        testRef.set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() })
-          .then(() => {
-            console.log('✅ Firebase conectado correctamente');
-            // Limpiar el test
-            testRef.delete().catch(e => console.log('Test cleanup:', e));
-          })
-          .catch(error => {
-            console.error('❌ Error Firebase:', error);
-            showMessage('Error: Verifica tu configuración de Firebase', 'error');
-          });
-      } catch (error) {
-        console.error('Error inicializando Firebase:', error);
-        showMessage('Error al inicializar Firebase', 'error');
-      }
-    }
-
-    // ===== LÓGICA DE LA APLICACIÓN =====
+    // ===== CONFIGURACIÓN DE CREDENCIALES =====
     const defaultConfig = {
       app_title: 'Registro de Asistencia Escolar',
       institution_name: 'Mi Institución Educativa',
+      admin_username: 'admin',
+      admin_password: '1234',
       primary_color: '#2563eb',
       secondary_color: '#1e293b',
       accent_color: '#10b981',
@@ -248,6 +159,7 @@
       background_color: '#f1f5f9'
     };
 
+    let isLoggedIn = false;
     let attendanceRecords = [];
     let selectedLevel = '';
     let isSubmitting = false;
@@ -290,82 +202,71 @@
         }),
         mapToEditPanelValues: (config) => new Map([
           ['app_title', config.app_title || defaultConfig.app_title],
-          ['institution_name', config.institution_name || defaultConfig.institution_name]
+          ['institution_name', config.institution_name || defaultConfig.institution_name],
+          ['admin_username', config.admin_username || defaultConfig.admin_username],
+          ['admin_password', config.admin_password || defaultConfig.admin_password]
         ])
       });
     }
 
-    // Cargar registros de Firestore
-    async function loadAttendanceRecords() {
-      if (!db) {
-        console.log('Firebase no inicializado aún');
-        return;
-      }
+    // ===== LOGIN =====
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
       
-      try {
-        const snapshot = await db.collection('attendance')
-          .orderBy('created_at', 'desc')
-          .limit(1000)
-          .get();
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      
+      const configUsername = window.elementSdk ? window.elementSdk.config.admin_username : defaultConfig.admin_username;
+      const configPassword = window.elementSdk ? window.elementSdk.config.admin_password : defaultConfig.admin_password;
+      
+      if (username === configUsername && password === configPassword) {
+        isLoggedIn = true;
+        showLoginMessage('✅ ¡Acceso permitido!', 'success');
         
-        attendanceRecords = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        console.log('✅ Registros cargados:', attendanceRecords.length);
-        renderHistory();
-        updateStats();
-        updateRecordCount();
-      } catch (error) {
-        console.error('Error cargando registros:', error);
+        setTimeout(() => {
+          document.getElementById('panel-login').classList.add('hidden');
+          document.getElementById('app-content').classList.remove('hidden');
+          loadAttendanceRecords();
+        }, 500);
+      } else {
+        showLoginMessage('❌ Usuario o contraseña incorrecta', 'error');
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+      }
+    });
+
+    function showLoginMessage(text, type) {
+      const msg = document.getElementById('login-message');
+      msg.textContent = text;
+      msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
+        (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
+      msg.classList.remove('hidden');
+      if (type !== 'error') {
+        setTimeout(() => msg.classList.add('hidden'), 3000);
       }
     }
 
-    // Guardar registro en Firestore
-    async function saveAttendanceRecord(record) {
-      if (!db) {
-        showMessage('Firebase no conectado', 'error');
-        return false;
-      }
-      
-      try {
-        console.log('Guardando registro:', record);
-        
-        const docRef = await db.collection('attendance').add({
-          ...record,
-          created_at: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log('✅ Registro guardado con ID:', docRef.id);
-        
-        // Recargar después de guardar
-        setTimeout(() => loadAttendanceRecords(), 500);
-        return true;
-      } catch (error) {
-        console.error('Error guardando:', error);
-        showMessage('Error al guardar: ' + error.message, 'error');
-        return false;
-      }
+    // ===== ALMACENAMIENTO LOCAL =====
+    function saveAttendanceRecord(record) {
+      attendanceRecords.push(record);
+      localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+      renderHistory();
+      updateStats();
+      updateRecordCount();
     }
 
-    // Eliminar registro de Firestore
-    async function deleteAttendanceRecord(docId) {
-      if (!db) {
-        showMessage('Firebase no conectado', 'error');
-        return false;
-      }
-      
-      try {
-        await db.collection('attendance').doc(docId).delete();
-        console.log('✅ Registro eliminado:', docId);
-        loadAttendanceRecords();
-        return true;
-      } catch (error) {
-        console.error('Error eliminando:', error);
-        showMessage('Error al eliminar', 'error');
-        return false;
-      }
+    function loadAttendanceRecords() {
+      const saved = localStorage.getItem('attendanceRecords');
+      attendanceRecords = saved ? JSON.parse(saved) : [];
+      renderHistory();
+      updateStats();
+      updateRecordCount();
+    }
+
+    function deleteAttendanceRecord(index) {
+      attendanceRecords.splice(index, 1);
+      localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+      loadAttendanceRecords();
     }
 
     // Set today's date
@@ -438,6 +339,7 @@
       submitBtn.disabled = true;
       
       const record = {
+        id: Date.now().toString(),
         date: document.getElementById('input-date').value,
         level: level,
         girls_present: parseInt(document.getElementById('girls-present').value) || 0,
@@ -446,16 +348,13 @@
         boys_absent: parseInt(document.getElementById('boys-absent').value) || 0,
         teacher_present: document.getElementById('teacher-present').checked,
         teacher_name: document.getElementById('teacher-name').value || '',
-        observations: document.getElementById('observations').value || ''
+        observations: document.getElementById('observations').value || '',
+        created_at: new Date().toISOString()
       };
       
-      const success = await saveAttendanceRecord(record);
-      if (success) {
-        showMessage('✅ ¡Asistencia guardada en Firebase!', 'success');
-        resetForm();
-      } else {
-        showMessage('❌ Error al guardar. Intente nuevamente.', 'error');
-      }
+      saveAttendanceRecord(record);
+      showMessage('¡Asistencia guardada correctamente!', 'success');
+      resetForm();
       
       submitBtn.textContent = '✅ Guardar Asistencia';
       submitBtn.disabled = false;
@@ -485,7 +384,7 @@
       msg.className = 'text-center text-sm font-semibold py-2 rounded-lg ' + 
         (type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50');
       msg.classList.remove('hidden');
-      setTimeout(() => msg.classList.add('hidden'), 4000);
+      setTimeout(() => msg.classList.add('hidden'), 3000);
     }
 
     // History Rendering
@@ -557,9 +456,6 @@
     }
 
     async function deleteRecord(docId) {
-      const record = attendanceRecords.find(r => r.id === docId);
-      if (!record) return;
-      
       const card = document.querySelector(`[data-id="${docId}"]`);
       if (card) {
         const deleteBtn = card.querySelector('button');
@@ -567,12 +463,7 @@
           deleteBtn.disabled = true;
           deleteBtn.textContent = '⏳';
           
-          const success = await deleteAttendanceRecord(docId);
-          if (!success) {
-            deleteBtn.textContent = '🗑️';
-            deleteBtn.disabled = false;
-            deleteBtn.dataset.confirming = 'false';
-          }
+          deleteAttendanceRecord(docId);
         } else {
           deleteBtn.dataset.confirming = 'true';
           deleteBtn.textContent = '¿Seguro?';
@@ -589,8 +480,9 @@
       }
     }
 
-    function deleteRecordConfirm(docId) {
-      deleteRecord(docId);
+    function deleteRecordConfirm(index) {
+      const record = attendanceRecords[index];
+      deleteRecord(record.id);
     }
 
     function updateRecordCount() {
@@ -612,7 +504,7 @@
     }
 
     // Excel Report Generation
-    function generatePdfReport() {
+    function generateExcelReport() {
       const fromDate = document.getElementById('report-from').value;
       const toDate = document.getElementById('report-to').value;
       const levelFilter = document.getElementById('report-level').value;
@@ -631,12 +523,33 @@
       // Sort by date
       filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
       
+      // Create CSV content
       const institution = document.getElementById('institution-text').textContent;
+      const headers = [
+        'Fecha',
+        'Nivel',
+        'Niñas Presentes',
+        'Niñas Ausentes',
+        'Niños Presentes',
+        'Niños Ausentes',
+        'Total Presentes',
+        'Total Ausentes',
+        'Total Estudiantes',
+        '% Asistencia',
+        'Docente',
+        'Docente Presente',
+        'Observaciones'
+      ];
       
-      // Create HTML for PDF
+      let csv = '\uFEFF'; // BOM for Excel
+      csv += institution + '\n';
+      csv += 'Reporte de Asistencia\n';
+      csv += 'Generado: ' + new Date().toLocaleDateString('es') + '\n\n';
+      csv += headers.join(',') + '\n';
+      
       let totalGirlsP = 0, totalGirlsA = 0, totalBoysP = 0, totalBoysA = 0;
       
-      const tableRows = filtered.map(r => {
+      filtered.forEach(r => {
         const totalP = r.girls_present + r.boys_present;
         const totalA = r.girls_absent + r.boys_absent;
         const total = totalP + totalA;
@@ -647,140 +560,45 @@
         totalBoysP += r.boys_present;
         totalBoysA += r.boys_absent;
         
-        return `
-          <tr>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.date}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.level}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.girls_present}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.girls_absent}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.boys_present}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.boys_absent}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; background: #e8f5e9;"><strong>${totalP}</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; background: #ffebee;"><strong>${totalA}</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;"><strong>${total}</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; font-weight: bold; color: ${rate >= 80 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444'};">${rate}%</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.teacher_name || '-'}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.teacher_present ? '✅' : '❌'}</td>
-          </tr>
-        `;
-      }).join('');
+        const row = [
+          r.date,
+          r.level,
+          r.girls_present,
+          r.girls_absent,
+          r.boys_present,
+          r.boys_absent,
+          totalP,
+          totalA,
+          total,
+          rate + '%',
+          '"' + (r.teacher_name || '').replace(/"/g, '""') + '"',
+          r.teacher_present ? 'Sí' : 'No',
+          '"' + (r.observations || '').replace(/"/g, '""') + '"'
+        ];
+        csv += row.join(',') + '\n';
+      });
       
+      // Summary row
       const grandTotalP = totalGirlsP + totalBoysP;
       const grandTotalA = totalGirlsA + totalBoysA;
       const grandTotal = grandTotalP + grandTotalA;
       const grandRate = grandTotal > 0 ? Math.round((grandTotalP / grandTotal) * 100) : 0;
       
-      const htmlContent = `
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              * { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-              body { padding: 20px; color: #333; }
-              .header { text-align: center; margin-bottom: 20px; }
-              .title { font-size: 24px; font-weight: bold; color: #1e40af; margin-bottom: 5px; }
-              .subtitle { font-size: 14px; color: #666; margin-bottom: 3px; }
-              .date-info { font-size: 12px; color: #999; margin-bottom: 20px; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-              th { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 12px; }
-              td { padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; }
-              .total-row { background: #f0f9ff; font-weight: bold; }
-              .summary { margin-top: 30px; padding: 20px; background: #f8fafc; border-left: 4px solid #2563eb; }
-              .summary-title { font-size: 14px; font-weight: bold; color: #1e40af; margin-bottom: 10px; }
-              .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
-              .summary-item { padding: 10px; background: white; border-radius: 5px; border: 1px solid #e5e7eb; }
-              .summary-value { font-size: 18px; font-weight: bold; color: #2563eb; }
-              .summary-label { font-size: 11px; color: #666; margin-top: 5px; }
-              .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 10px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="title">📚 Reporte de Asistencia Escolar</div>
-              <div class="subtitle">${institution}</div>
-              <div class="date-info">
-                Período: ${formatDate(fromDate || 'Inicio')} hasta ${formatDate(toDate || 'Fin')}<br>
-                Generado: ${new Date().toLocaleDateString('es', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-            
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Nivel</th>
-                  <th>Niñas ✓</th>
-                  <th>Niñas ✗</th>
-                  <th>Niños ✓</th>
-                  <th>Niños ✗</th>
-                  <th>Total ✓</th>
-                  <th>Total ✗</th>
-                  <th>Total</th>
-                  <th>% Asist.</th>
-                  <th>Docente</th>
-                  <th>Presente</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-                <tr class="total-row">
-                  <td colspan="2">TOTALES</td>
-                  <td>${totalGirlsP}</td>
-                  <td>${totalGirlsA}</td>
-                  <td>${totalBoysP}</td>
-                  <td>${totalBoysA}</td>
-                  <td style="background: #d1fae5;">${grandTotalP}</td>
-                  <td style="background: #fee2e2;">${grandTotalA}</td>
-                  <td>${grandTotal}</td>
-                  <td style="color: ${grandRate >= 80 ? '#10b981' : grandRate >= 50 ? '#f59e0b' : '#ef4444'};">${grandRate}%</td>
-                  <td colspan="2"></td>
-                </tr>
-              </tbody>
-            </table>
-            
-            <div class="summary">
-              <div class="summary-title">📈 Resumen del Período</div>
-              <div class="summary-grid">
-                <div class="summary-item">
-                  <div class="summary-value">${filtered.length}</div>
-                  <div class="summary-label">Registros de Días</div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-value" style="color: #10b981;">${grandTotalP}</div>
-                  <div class="summary-label">Total Asistencias</div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-value" style="color: #ef4444;">${grandTotalA}</div>
-                  <div class="summary-label">Total Ausencias</div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-value" style="color: ${grandRate >= 80 ? '#10b981' : grandRate >= 50 ? '#f59e0b' : '#ef4444'};">${grandRate}%</div>
-                  <div class="summary-label">Tasa de Asistencia</div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="footer">
-              Sistema de Control de Asistencia Escolar | ${new Date().toLocaleDateString('es')}
-            </div>
-          </body>
-        </html>
-      `;
+      csv += '\n';
+      csv += 'TOTALES,,' + totalGirlsP + ',' + totalGirlsA + ',' + totalBoysP + ',' + totalBoysA + ',' + grandTotalP + ',' + grandTotalA + ',' + grandTotal + ',' + grandRate + '%\n';
       
-      // Generate PDF
-      const element = document.createElement('div');
-      element.innerHTML = htmlContent;
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
-      const options = {
-        margin: 0.5,
-        filename: 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: 'landscape', unit: 'in', format: 'letter' }
-      };
-      
-      html2pdf().set(options).from(element).save();
-      showMessage('✅ ¡PDF generado y descargado!', 'success');
+      showMessage('¡Reporte descargado exitosamente!', 'success');
     }
 
     function formatDate(dateStr) {
@@ -788,5 +606,5 @@
       return date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2ab6772185a533',t:'MTc3MTg5MTU0MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2af66315f2e1ca',t:'MTc3MTg5NDE1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
