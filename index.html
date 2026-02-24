@@ -9,7 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Nunito', sans-serif; }
@@ -611,8 +611,8 @@
       document.getElementById('stat-attendance-rate').textContent = rate + '%';
     }
 
-    // Excel Report Generation - XLSX Nativo
-    function generateExcelReport() {
+    // Excel Report Generation
+    function generatePdfReport() {
       const fromDate = document.getElementById('report-from').value;
       const toDate = document.getElementById('report-to').value;
       const levelFilter = document.getElementById('report-level').value;
@@ -633,37 +633,10 @@
       
       const institution = document.getElementById('institution-text').textContent;
       
-      // Crear datos para la hoja de cálculo
-      const sheetData = [];
-      
-      // Encabezados de título
-      sheetData.push([institution]);
-      sheetData.push(['Reporte de Asistencia']);
-      sheetData.push(['Generado: ' + new Date().toLocaleDateString('es')]);
-      sheetData.push([]);
-      
-      // Encabezados de tabla
-      const headers = [
-        'Fecha',
-        'Nivel',
-        'Niñas Presentes',
-        'Niñas Ausentes',
-        'Niños Presentes',
-        'Niños Ausentes',
-        'Total Presentes',
-        'Total Ausentes',
-        'Total Estudiantes',
-        '% Asistencia',
-        'Docente',
-        'Docente Presente',
-        'Observaciones'
-      ];
-      sheetData.push(headers);
-      
+      // Create HTML for PDF
       let totalGirlsP = 0, totalGirlsA = 0, totalBoysP = 0, totalBoysA = 0;
       
-      // Datos
-      filtered.forEach(r => {
+      const tableRows = filtered.map(r => {
         const totalP = r.girls_present + r.boys_present;
         const totalA = r.girls_absent + r.boys_absent;
         const total = totalP + totalA;
@@ -674,74 +647,140 @@
         totalBoysP += r.boys_present;
         totalBoysA += r.boys_absent;
         
-        sheetData.push([
-          r.date,
-          r.level,
-          r.girls_present,
-          r.girls_absent,
-          r.boys_present,
-          r.boys_absent,
-          totalP,
-          totalA,
-          total,
-          rate,
-          r.teacher_name || '',
-          r.teacher_present ? 'Sí' : 'No',
-          r.observations || ''
-        ]);
-      });
+        return `
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.date}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.level}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.girls_present}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.girls_absent}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.boys_present}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.boys_absent}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; background: #e8f5e9;"><strong>${totalP}</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; background: #ffebee;"><strong>${totalA}</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;"><strong>${total}</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; font-weight: bold; color: ${rate >= 80 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444'};">${rate}%</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.teacher_name || '-'}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${r.teacher_present ? '✅' : '❌'}</td>
+          </tr>
+        `;
+      }).join('');
       
-      // Fila de totales
       const grandTotalP = totalGirlsP + totalBoysP;
       const grandTotalA = totalGirlsA + totalBoysA;
       const grandTotal = grandTotalP + grandTotalA;
       const grandRate = grandTotal > 0 ? Math.round((grandTotalP / grandTotal) * 100) : 0;
       
-      sheetData.push([]);
-      sheetData.push([
-        'TOTALES',
-        '',
-        totalGirlsP,
-        totalGirlsA,
-        totalBoysP,
-        totalBoysA,
-        grandTotalP,
-        grandTotalA,
-        grandTotal,
-        grandRate,
-        '',
-        '',
-        ''
-      ]);
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              * { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+              body { padding: 20px; color: #333; }
+              .header { text-align: center; margin-bottom: 20px; }
+              .title { font-size: 24px; font-weight: bold; color: #1e40af; margin-bottom: 5px; }
+              .subtitle { font-size: 14px; color: #666; margin-bottom: 3px; }
+              .date-info { font-size: 12px; color: #999; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 12px; }
+              td { padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 11px; }
+              .total-row { background: #f0f9ff; font-weight: bold; }
+              .summary { margin-top: 30px; padding: 20px; background: #f8fafc; border-left: 4px solid #2563eb; }
+              .summary-title { font-size: 14px; font-weight: bold; color: #1e40af; margin-bottom: 10px; }
+              .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+              .summary-item { padding: 10px; background: white; border-radius: 5px; border: 1px solid #e5e7eb; }
+              .summary-value { font-size: 18px; font-weight: bold; color: #2563eb; }
+              .summary-label { font-size: 11px; color: #666; margin-top: 5px; }
+              .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="title">📚 Reporte de Asistencia Escolar</div>
+              <div class="subtitle">${institution}</div>
+              <div class="date-info">
+                Período: ${formatDate(fromDate || 'Inicio')} hasta ${formatDate(toDate || 'Fin')}<br>
+                Generado: ${new Date().toLocaleDateString('es', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Nivel</th>
+                  <th>Niñas ✓</th>
+                  <th>Niñas ✗</th>
+                  <th>Niños ✓</th>
+                  <th>Niños ✗</th>
+                  <th>Total ✓</th>
+                  <th>Total ✗</th>
+                  <th>Total</th>
+                  <th>% Asist.</th>
+                  <th>Docente</th>
+                  <th>Presente</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+                <tr class="total-row">
+                  <td colspan="2">TOTALES</td>
+                  <td>${totalGirlsP}</td>
+                  <td>${totalGirlsA}</td>
+                  <td>${totalBoysP}</td>
+                  <td>${totalBoysA}</td>
+                  <td style="background: #d1fae5;">${grandTotalP}</td>
+                  <td style="background: #fee2e2;">${grandTotalA}</td>
+                  <td>${grandTotal}</td>
+                  <td style="color: ${grandRate >= 80 ? '#10b981' : grandRate >= 50 ? '#f59e0b' : '#ef4444'};">${grandRate}%</td>
+                  <td colspan="2"></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="summary">
+              <div class="summary-title">📈 Resumen del Período</div>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <div class="summary-value">${filtered.length}</div>
+                  <div class="summary-label">Registros de Días</div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-value" style="color: #10b981;">${grandTotalP}</div>
+                  <div class="summary-label">Total Asistencias</div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-value" style="color: #ef4444;">${grandTotalA}</div>
+                  <div class="summary-label">Total Ausencias</div>
+                </div>
+                <div class="summary-item">
+                  <div class="summary-value" style="color: ${grandRate >= 80 ? '#10b981' : grandRate >= 50 ? '#f59e0b' : '#ef4444'};">${grandRate}%</div>
+                  <div class="summary-label">Tasa de Asistencia</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="footer">
+              Sistema de Control de Asistencia Escolar | ${new Date().toLocaleDateString('es')}
+            </div>
+          </body>
+        </html>
+      `;
       
-      // Crear libro de trabajo
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+      // Generate PDF
+      const element = document.createElement('div');
+      element.innerHTML = htmlContent;
       
-      // Ajustar ancho de columnas
-      worksheet['!cols'] = [
-        { wch: 12 }, // Fecha
-        { wch: 15 }, // Nivel
-        { wch: 15 }, // Niñas Presentes
-        { wch: 15 }, // Niñas Ausentes
-        { wch: 15 }, // Niños Presentes
-        { wch: 15 }, // Niños Ausentes
-        { wch: 15 }, // Total Presentes
-        { wch: 15 }, // Total Ausentes
-        { wch: 18 }, // Total Estudiantes
-        { wch: 12 }, // % Asistencia
-        { wch: 20 }, // Docente
-        { wch: 15 }, // Docente Presente
-        { wch: 30 }  // Observaciones
-      ];
+      const options = {
+        margin: 0.5,
+        filename: 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'landscape', unit: 'in', format: 'letter' }
+      };
       
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Asistencia');
-      
-      // Descargar archivo
-      const fileName = 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-      XLSX.writeFile(workbook, fileName);
-      
-      showMessage('✅ ¡Reporte Excel descargado exitosamente!', 'success');
+      html2pdf().set(options).from(element).save();
+      showMessage('✅ ¡PDF generado y descargado!', 'success');
     }
 
     function formatDate(dateStr) {
@@ -749,5 +788,5 @@
       return date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2aad1217bda533',t:'MTc3MTg5MTE1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2ab6772185a533',t:'MTc3MTg5MTU0MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
