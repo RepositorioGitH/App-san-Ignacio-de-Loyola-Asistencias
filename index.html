@@ -611,7 +611,7 @@
       document.getElementById('stat-attendance-rate').textContent = rate + '%';
     }
 
-    // Excel Report Generation (XLSX nativo)
+    // Excel Report Generation - XLSX Nativo
     function generateExcelReport() {
       const fromDate = document.getElementById('report-from').value;
       const toDate = document.getElementById('report-to').value;
@@ -633,11 +633,16 @@
       
       const institution = document.getElementById('institution-text').textContent;
       
-      // Crear workbook y worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet([]);
+      // Crear datos para la hoja de cálculo
+      const sheetData = [];
       
-      // Datos de encabezado
+      // Encabezados de título
+      sheetData.push([institution]);
+      sheetData.push(['Reporte de Asistencia']);
+      sheetData.push(['Generado: ' + new Date().toLocaleDateString('es')]);
+      sheetData.push([]);
+      
+      // Encabezados de tabla
       const headers = [
         'Fecha',
         'Nivel',
@@ -653,22 +658,11 @@
         'Docente Presente',
         'Observaciones'
       ];
-      
-      // Información de título
-      ws['A1'] = { v: institution, t: 's' };
-      ws['A2'] = { v: 'Reporte de Asistencia', t: 's' };
-      ws['A3'] = { v: 'Generado: ' + new Date().toLocaleDateString('es'), t: 's' };
-      
-      // Agregar headers en fila 5
-      headers.forEach((header, idx) => {
-        const cellRef = XLSX.utils.encode_col(idx) + '5';
-        ws[cellRef] = { v: header, t: 's' };
-      });
+      sheetData.push(headers);
       
       let totalGirlsP = 0, totalGirlsA = 0, totalBoysP = 0, totalBoysA = 0;
-      let rowIdx = 6;
       
-      // Agregar datos
+      // Datos
       filtered.forEach(r => {
         const totalP = r.girls_present + r.boys_present;
         const totalA = r.girls_absent + r.boys_absent;
@@ -680,7 +674,7 @@
         totalBoysP += r.boys_present;
         totalBoysA += r.boys_absent;
         
-        const row = [
+        sheetData.push([
           r.date,
           r.level,
           r.girls_present,
@@ -694,17 +688,7 @@
           r.teacher_name || '',
           r.teacher_present ? 'Sí' : 'No',
           r.observations || ''
-        ];
-        
-        row.forEach((val, idx) => {
-          const cellRef = XLSX.utils.encode_col(idx) + rowIdx;
-          ws[cellRef] = { 
-            v: val, 
-            t: idx === 9 ? 'n' : (typeof val === 'number' ? 'n' : 's')
-          };
-        });
-        
-        rowIdx++;
+        ]);
       });
       
       // Fila de totales
@@ -713,41 +697,51 @@
       const grandTotal = grandTotalP + grandTotalA;
       const grandRate = grandTotal > 0 ? Math.round((grandTotalP / grandTotal) * 100) : 0;
       
-      rowIdx++;
-      ws['A' + rowIdx] = { v: 'TOTALES', t: 's' };
-      ws['C' + rowIdx] = { v: totalGirlsP, t: 'n' };
-      ws['D' + rowIdx] = { v: totalGirlsA, t: 'n' };
-      ws['E' + rowIdx] = { v: totalBoysP, t: 'n' };
-      ws['F' + rowIdx] = { v: totalBoysA, t: 'n' };
-      ws['G' + rowIdx] = { v: grandTotalP, t: 'n' };
-      ws['H' + rowIdx] = { v: grandTotalA, t: 'n' };
-      ws['I' + rowIdx] = { v: grandTotal, t: 'n' };
-      ws['J' + rowIdx] = { v: grandRate, t: 'n' };
+      sheetData.push([]);
+      sheetData.push([
+        'TOTALES',
+        '',
+        totalGirlsP,
+        totalGirlsA,
+        totalBoysP,
+        totalBoysA,
+        grandTotalP,
+        grandTotalA,
+        grandTotal,
+        grandRate,
+        '',
+        '',
+        ''
+      ]);
+      
+      // Crear libro de trabajo
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
       
       // Ajustar ancho de columnas
-      ws['!cols'] = [
+      worksheet['!cols'] = [
         { wch: 12 }, // Fecha
         { wch: 15 }, // Nivel
-        { wch: 12 }, // Niñas Presentes
-        { wch: 12 }, // Niñas Ausentes
-        { wch: 12 }, // Niños Presentes
-        { wch: 12 }, // Niños Ausentes
-        { wch: 12 }, // Total Presentes
-        { wch: 12 }, // Total Ausentes
-        { wch: 15 }, // Total Estudiantes
+        { wch: 15 }, // Niñas Presentes
+        { wch: 15 }, // Niñas Ausentes
+        { wch: 15 }, // Niños Presentes
+        { wch: 15 }, // Niños Ausentes
+        { wch: 15 }, // Total Presentes
+        { wch: 15 }, // Total Ausentes
+        { wch: 18 }, // Total Estudiantes
         { wch: 12 }, // % Asistencia
-        { wch: 15 }, // Docente
+        { wch: 20 }, // Docente
         { wch: 15 }, // Docente Presente
-        { wch: 20 }  // Observaciones
+        { wch: 30 }  // Observaciones
       ];
       
-      // Agregar worksheet al workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Asistencia');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Asistencia');
       
       // Descargar archivo
-      XLSX.writeFile(wb, 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+      const fileName = 'Reporte_Asistencia_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      XLSX.writeFile(workbook, fileName);
       
-      showMessage('¡Reporte XLSX descargado exitosamente!', 'success');
+      showMessage('✅ ¡Reporte Excel descargado exitosamente!', 'success');
     }
 
     function formatDate(dateStr) {
@@ -755,5 +749,5 @@
       return date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2aa4266581e1ca',t:'MTc3MTg5MDc5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2aad1217bda533',t:'MTc3MTg5MTE1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
